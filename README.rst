@@ -18,3 +18,14 @@ that streamlines the post-processing of the PIV (particle image velocimetry) dat
       >> spatialbox 
 
 + view the web pages at http://openpiv.github.com/openpiv-spatial-analysis-toolbox
+
+
+Developers
+++++++++++
+
+Ideas and implementation:
+
+Dr. Roi Gurka, Ben Gurion University http://www.bgu.ac.il/~gurka
+Dr. Alex Liberzon, Tel Aviv University http://www.eng.tau.ac.il/~alexlib
+Denis Lepchev
+
