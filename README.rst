@@ -16,6 +16,7 @@ repository for OpenPIV Spatial Analysis Toolbox
       >> spatialbox 
 
 + view the web pages at http://openpiv.github.com/openpiv-spatial-analysis-toolbox
++ view the screencast of a demo on Youtube at http://www.youtube.com/watch?v=lctFH79F410
 
 
 Developers
