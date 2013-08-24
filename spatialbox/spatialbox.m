@@ -2872,5 +2872,3 @@ else
 end;
 
 guidata(handles.fig,handles);
-
-
