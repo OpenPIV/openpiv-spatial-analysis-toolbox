@@ -1,5 +1,5 @@
 % SPATIALBOX - main GUI file, created by GUIDE
-% 
+%
 
 % Copyright (c) 1998-2012 OpenPIV group
 % See the file license.txt for copying permission.
@@ -1113,7 +1113,7 @@ try
     handles.dt = 1;
     handles.state3d = 0;
     handles.scale = 1;
-    [gui_path,junk,junk] = fileparts(gui_files{1});
+    [gui_path,~,~] = fileparts(gui_files{1});
     
     
     handles.N = length(gui_files); % number of files selected
@@ -1182,894 +1182,88 @@ try
                     handles.v(:,:,i) = d(:,:,4);
                 end
                 clear d
+            elseif ~isempty(findstr(lower(handles.files{1}),'txt')) % new files, created for stratified
+                % project, probably by Zach Taylor version of OpenPIV C++
+                % the format is different from our ".txt" files which have
+                % no headers, and different from VEC format of Insight 3G,
+                % but has a header, single line that one can get out using:
+                fid = fopen(handles.files{1},'r');
+                header = fgetl(fid);
+                fclose(fid);
+                % get units - TODO. use findstr(header, '[') and ']'
+                handles.xUnits = 'pixels';
+                handles.velUnits = 'pixels';
+                
+                
+                % and the read the data in the file using:
+                d = dlmread(handles.files{1},'',1,0);
+                
+                % we need to know the reshape size:
+                rows = find(diff(d(:,1))<0,1);
+                cols = length(d(:,1))/rows;
+                
+                [handles.u,handles.v] = deal(zeros(rows,cols,handles.N+1)); % 11.04.04, Alex
+                handles.x           = reshape(d(:,1),rows,cols);
+                handles.y           = reshape(d(:,2),rows,cols);
+                handles.u(:,:,1)    = reshape(d(:,3),rows,cols);
+                handles.v(:,:,1)    = reshape(d(:,4),rows,cols);
+                
+                for i = 2:handles.N
+                    d = dlmread(handles.files{i},'',1,0);
+                    handles.u(:,:,1)    = reshape(d(:,3),rows,cols);
+                    handles.v(:,:,1)    = reshape(d(:,4),rows,cols);
+                end
+                clear d
+                
+                
+                
+                
+                
+                
             end
+            
+            catch
+                errordlg('Something wrong with vector files');
+                set(handles.fig,'pointer','arrow');
+                return
     end
     
-catch
-    errordlg('Something wrong with vector files');
-    set(handles.fig,'pointer','arrow');
-    return
-end
-
-handles.current = 1;                      % current file beeing displayed
-% Display first file number, total number of files
-set(handles.edit_current,'String',handles.current);
-set(handles.edit_numfields,'String',handles.N);
-
-% Initialize color, number of colors for contours
-handles.numcolors = 10;                   % default number of colors
-set(handles.edit_numcolors,'String', handles.numcolors);
-
-
-% handles.dx = abs(handles.x(1,1) - handles.x(1,2));
-% handles.dy = abs(handles.y(1,1) - handles.y(2,1));
-% Bug, fixed at 16.06 after the email of Hai
-handles.dx = handles.x(1,2) - handles.x(1,1);
-handles.dy = handles.y(2,1) - handles.y(1,1);
-
-% 19.03.08 - Alex found one case in which the VEC file
-% is transposed (x is from top to bottom, etc.)
-% therefore dx gave 0 and vorticity was NaN and Inf
-% just for this case:
-
-if handles.dx == 0 && handles.dy == 0
-    handles.x = permute(handles.x,[2 1]);
-    handles.y = permute(handles.y,[2 1]);
-    handles.u = permute(handles.u,[2 1 3]);
-    handles.v = permute(handles.v,[2 1 3]);
+    handles.current = 1;                      % current file beeing displayed
+    % Display first file number, total number of files
+    set(handles.edit_current,'String',handles.current);
+    set(handles.edit_numfields,'String',handles.N);
+    
+    % Initialize color, number of colors for contours
+    handles.numcolors = 10;                   % default number of colors
+    set(handles.edit_numcolors,'String', handles.numcolors);
+    
+    
+    % handles.dx = abs(handles.x(1,1) - handles.x(1,2));
+    % handles.dy = abs(handles.y(1,1) - handles.y(2,1));
+    % Bug, fixed at 16.06 after the email of Hai
     handles.dx = handles.x(1,2) - handles.x(1,1);
     handles.dy = handles.y(2,1) - handles.y(1,1);
-    tmprows = cols;
-    cols = rows;
-    rows = tmprows;
-end
-
-
-
-% Cat the mean values at the end
-handles.u(:,:,handles.N+1) = mean(handles.u(:,:,1:handles.N),3);
-handles.v(:,:,handles.N+1) = mean(handles.v(:,:,1:handles.N),3);
-if handles.state3d
-    handles.w(:,:,handles.N+1) = mean(handles.w(:,:,1:handles.N),3);
-    handles.wf = zeros(rows,cols,handles.N);
-    for i = 1:handles.N
-        handles.wf(:,:,i) = handles.w(:,:,i) - handles.w(:,:,handles.N+1);
-    end
-end
-
-
-
-
-
-
-% Preallocate memory and calculate all the necessary quantities
-% Fluctuations (last one is zero, we do not need it)
-handles.uf = zeros(rows,cols,handles.N);
-handles.vf = zeros(rows,cols,handles.N);
-%
-for i = 1:handles.N
-    handles.vf(:,:,i) = handles.v(:,:,i) - handles.v(:,:,handles.N+1);
-end
-%
-for i = 1:handles.N
-    handles.uf(:,:,i) = handles.u(:,:,i) - handles.u(:,:,handles.N+1);
-end
-
-% Derivatives
-handles.dudx = zeros(rows,cols,handles.N+1);
-handles.dudy = zeros(rows,cols,handles.N+1);
-handles.dvdx = zeros(rows,cols,handles.N+1);
-handles.dvdy = zeros(rows,cols,handles.N+1);
-%
-for i = 1:handles.N+1
-    [handles.dudx(:,:,i),handles.dudy(:,:,i)] = lsgradient(handles.u(:,:,i),handles.dx, handles.dy);
-    [handles.dvdx(:,:,i),handles.dvdy(:,:,i)] = lsgradient(handles.v(:,:,i),handles.dx, handles.dy);
-end
-
-% Possible future development, eliminating strong gradients
-% on the borders
-% handles.dudx(1:2,:,:)       = NaN;
-% handles.dudx(end-1:end,:,:) = NaN;
-% handles.dudx(:,1:2,:)       = NaN;
-% handles.dudx(:,end-1:end,:) = NaN;
-
-%
-% More defaults
-handles.arrow_scale = 1;                % default scale
-set(handles.edit_arrow_size,'String',handles.arrow_scale);
-
-% Default situation, instantaneous, not Ensemble, not fluctuations
-set(handles.checkbox_ensemble,'Value',0);
-set(handles.checkbox_fluct,'Value',0);
-
-% No colors, no labels
-handles.color = 0;                % display colored / black figure
-handles.alltodisp = 0;            % default all_to display is unset
-handles.allfields = 0;
-handles.labelit = 0;              % label for contour
-handles.colorbar_flag = 0;
-handles.current_index = handles.current;
-handles.distribOn=0;
-handles.rowlock=0; handles.columnlock=0;
-handles.previousSel=[];
-
-% These are future values, for the TimeBox
-handles.i=[];
-handles.j=[];
-handles.PointsH=[];
-handles.Allselected=0;
-
-% handles.dx = handles.x(1,2) - handles.x(1,1);
-% handles.dy = handles.y(2,1) - handles.y(1,1);
-
-% abs() is added on Dec.13,2004. by Alex on IHW_Liberzon computer
-%
-handles.gridX = abs(handles.x(1,2) - handles.x(1,1));
-handles.gridY = abs(handles.y(1,1) - handles.y(2,1));
-
-% Show some and hide some controls
-set(handles.popupmenu_quantity,'Visible','on');
-set(handles.popupmenu_quantity,'Value',1);
-set(handles.popupmenu_contour_type,'Visible','on');
-set(handles.popupmenu_contour_type,'Value',1);
-set(handles.popupmenu_eachfield,'Visible','on');
-set(handles.popupmenu_eachfield,'Value',1);
-
-% Some only part of them in Enable mode
-set(handles.checkbox_arrow,'Enable','On');
-set(handles.edit_arrow_size,'Enable','On');
-set(handles.checkbox_fluct,'Enable','On');
-set(handles.checkbox_ensemble,'Enable','On');
-set(handles.popupmenu_quantity,'Enable','On');
-set(handles.pushbutton_previous,'Enable','On');
-set(handles.pushbutton_next,'Enable','On');
-set(handles.edit_current,'Enable','On');
-set(handles.pushbutton_animate,'Enable','On');
-set(handles.pushbutton_save_movie,'Enable','on');
-% set(handles.pushbutton_stats,'Enable','on');
-
-
-% Properties
-set(handles.popupmenu_quantity,'String',handles.inst_list);
-handles.property = [];
-
-% ---------------- store all handles of spatial controls ------------------
-% handles.spatial_controls=[handles.checkbox_ensemble,handles.checkbox_fluct,handles.checkbox_arrow,handles.checkbox_arrow_color,...
-%         handles.checkbox_label,handles.checkbox_colorbar,handles.edit_arrow_size,handles.edit_numcolors,...
-%         handles.edit_current,handles.edit_numfields,...
-%         handles.text_contour_quantity, handles.text_contourtype, handles.text_numberofcolors, handles.text7,handles.text2,...
-%         handles.text_arrow_size, handles.pushbutton_previous, handles.pushbutton_next, ...
-%         handles.pushbutton_animate, handles.pushbutton_save_movie, ...
-%         handles.frame_controls,handles.frame8,handles.frame_contour_quantity,handles.frame_contour_type,handles.frame7,...
-%         handles.frame_arrow, handles.text5, handles.popupmenu_quantity,handles.popupmenu_contour_type,...
-%         handles.popupmenu_eachfield];% ,handles.pushbutton_stats];
-
-% -------------- store all handles of select controls ----------------
-% handles.select_controls=[handles.pushbutton_selectpoints,handles.pushbutton_selectreg,handles.pushbutton_selectall,...
-%          handles.pushbutton_profile1,handles.pushbutton_time,...
-%          handles.pushbutton_reset, handles.rowpushbutton, handles.colpushbutton];
-
-handles.arrow_ctrls=[handles.edit_arrow_size,handles.checkbox_arrow,handles.checkbox_arrow_color];
-% handles.stat_controls=[handles.ed_mean,handles.ed_std,handles.ed_min,handles.ed_max,handles.ed_text,...
-%         handles.ed_pushsavestl,handles.ed_frame,handles.ed_pushclose,handles.ed_textmean,...
-%         handles.ed_textstd,handles.ed_textmax,handles.ed_textmin];
-
-
-set(handles.pushbutton_spatial,'Enable','on');
-set(handles.pushbutton_select,'Enable','on');
-
-set(handles.fig,'pointer','arrow');
-
-% added on 10.04.06 for R12SP3 version
-handles.axpos = get(handles.axes_main,'Position');
-
-% Update all handles structure
-guidata(handles.fig,handles);
-
-% Make default plot
-update_gui(handles.fig,[],handles);
-
-
-
-% --------------------------------------------------------------------
-function exit_Callback(hObject, eventdata, handles)
-% Find the highest parent - figure, and close it.
-while ~strcmpi(get(hObject,'Type'),'figure'),
-    hObject = get(hObject,'Parent');
-end
-delete(hObject);
-
-% --- Executes on button press in pushbutton_spatial.
-function pushbutton_spatial_Callback(hObject, eventdata, handles)
-
-set(handles.spatial_controls,'Visible','on');
-set(handles.select_controls,'Visible','off');
-set(handles.pushbutton_spatial,'FontWeight','bold');
-set(handles.pushbutton_select,'FontWeight','normal');
-set(handles.pushbutton_spatial,'String','> Spatial <');
-set(handles.pushbutton_select,'String','Select');
-val = get(handles.popupmenu_eachfield,'Value');
-if val==4   % in case if manual is selected
-    set(handles.edit_min_clim,'Visible','On'); % show 2 editboxes to enter the values
-    set(handles.edit_max_clim,'Visible','On');
-    set(handles.pushbutton_set_clim,'Visible','On');
-end
-
-% save selection
-handles.i = []; handles.j = [];
-handles.rowlock=0; handles.columnlock=0;
-handles.previousSel=[];
-
-update_gui(gcbo,[],guidata(gcbo));
-guidata(handles.fig,handles);
-% update_gui(handles.fig,[],handles);
-
-
-% -------------------------------------------------------------
-%    SELECTION
-% -------------------------------------------------------------
-
-% --- Executes on button press in pushbutton_select.
-function pushbutton_select_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton_select (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-set(handles.spatial_controls,'Visible','off');
-% set(handles.pushbutton_set_clim,'Visible','off');
-set(handles.select_controls,'Visible','on');
-% set(findobj(handles.spatial_controls,'type','uicontrol'),'Enable','Off');
-set(findobj(handles.select_controls,'type','uicontrol'),'Enable','On');
-set(handles.pushbutton_select,'String','> Select <');
-set(handles.pushbutton_spatial,'String','Spatial');
-
-
-set(handles.pushbutton_spatial,'FontWeight','normal');
-set(handles.pushbutton_select,'FontWeight','bold');
-val = get(handles.popupmenu_eachfield,'Value');
-handles.i = []; handles.j = [];
-handles.rowlock=0; handles.columnlock=0;
-handles.previousSel=[];
-
-update_gui(gcbo,[],guidata(gcbo));
-guidata(handles.fig,handles);
-
-
-
-
-% --- Executes on button press in pushbutton_selectpoints.
-function pushbutton_selectpoints_Callback(hObject, eventdata, handles)
-
-
-set(handles.rowpushbutton,'Enable','off');
-set(handles.pushbutton_selectreg,'Enable','off');
-set(handles.colpushbutton,'Enable','off');
-set(handles.pushbutton_selectall,'Enable','off');
-
-
-
-set(handles.axes_main,'NextPlot','Add');
-limX = xlim;
-limY = ylim;
-leftcolX   = 1;
-bottomrowY = 1;
-
-
-while 1
     
-    [x1,y1, buttonNumber] = ginput(1);
+    % 19.03.08 - Alex found one case in which the VEC file
+    % is transposed (x is from top to bottom, etc.)
+    % therefore dx gave 0 and vorticity was NaN and Inf
+    % just for this case:
     
-    % When the right button is pressed, stop the loop
-    if (buttonNumber == 2) | (buttonNumber==3)
-        break
-    end
-    col = fix (( x1 - limX(1,1) )/ handles.gridX+0.5  )+1;
-    row = fix(( y1 - limY(1,1) )/ handles.gridY+0.5  )+1;
-    
-    % check for errors ----------------
-    if col<1 | col>(fix((limX(1,2)-limX(1,1))/handles.gridX)+1) | row<1 | row...
-            >(fix((limY(1,2)-limY(1,1))/handles.gridY)+1);
-        guidata(handles.fig,handles);
-        return
-    end
-    % ---------------------------------
-    sizeI = size(handles.i,1);
-    rightcolX = fix(( limX(1,2)-limX(1,1) )/  handles.gridX )+1;
-    uprowY    = fix(( limY(1,2)-limY(1,1) )/  handles.gridY )+1;
-    sizeJ = size(handles.j,1);
-    numofcols = rightcolX - leftcolX + 1;
-    numofrows = uprowY - bottomrowY + 1;
-    
-    handles.i(sizeI+1,1) = row;
-    handles.j(sizeJ+1,1) = col;
-    
-
-    
-    line(limX(1,1)+(col-1)*...
-        handles.gridX,limY(1,1)+(row-1)*handles.gridY,'Marker','o','Color','k','MarkerSize',8);
-    
-end
-disp('Points selected')
-disp([handles.i,handles.j])
-disp(handles.x(handles.i,handles.j))
-guidata(handles.fig,handles);
-% update_gui(handles.fig,[],handles);
-
-
-
-% --- Executes on button press in pushbutton_selectreg.
-function pushbutton_selectreg_Callback(hObject, eventdata, handles)
-% check if all selected is off
-set(handles.pushbutton_selectpoints,'Enable','off');
-set(handles.rowpushbutton,'Enable','off');
-set(handles.colpushbutton,'Enable','off');
-set(handles.pushbutton_selectall,'Enable','off');
-
-k       =   waitforbuttonpress;
-point1  =   get(gca,'CurrentPoint');    % button down detected
-% point1 is 2x3 matrix, first 2 elements are x,y
-finalRect = rbbox;                   % return figure units
-point2  =    get(gca,'CurrentPoint');    % button up detected
-point1  =    point1(1,1:2);              % extract x and y
-point2  =    point2(1,1:2);
-p1      =    min(point1,point2);             % calculate locations
-offset  =    abs(point1-point2);         % and dimensions
-
-
-limX = xlim; limY = ylim;                     % get Axis Limits
-% -------------- calculate columns & rows ------------------
-leftcolX = fix(( p1(1)-limX(1,1) )/ handles.gridX +1) + 1;
-rightcolX = fix(( p1(1)+offset(1)-limX(1,1) )/ handles.gridX )+1;
-bottomrowY =  fix(( p1(2)-limY(1,1) )/ handles.gridY+1 )+1;
-uprowY = fix(( p1(2) + offset(2) - limY(1,1) )/ handles.gridY)+1;
-
-
-% -------boundary check ----------------
-plotstateX=0;plotstateY=0;
-if leftcolX<1     leftcolX=1;
-    plotstateY= 1;
-end;
-rightLimit=fix((limX(1,2)-limX(1,1))/handles.gridX)+1;
-if rightcolX>rightLimit  rightcolX=rightLimit; end;
-uprowLimit=fix((limY(1,2)-limY(1,1))/handles.gridY)+1;
-if bottomrowY<1  bottomrowY=1;
-    plotstateX= 1;   % we need it to plot in right way
-end
-if uprowY>uprowLimit     uprowY=uprowLimit; end;
-
-% --------- selection checking ---------------
-sizeI = size(handles.i,1);
-sizeJ = size(handles.j,1);
-numofcols = rightcolX-leftcolX+1;
-numofrows = uprowY-bottomrowY+1;
-
-
-% -------------- errorchecking --------
-if ~isempty(handles.previousSel)
-    a = handles.previousSel;
-    if ((rightcolX-leftcolX) == a(2)-a(1) & a(2) == rightcolX & handles.rowlock~=1)
-        handles.columnlock=1;
-    elseif    ((uprowY-bottomrowY)==a(4)-a(3) & a(4)==uprowY & handles.columnlock~=1)
-        handles.rowlock=1;
-    else
-        errordlg('Your Selection is Invalid...');
-        return;
-    end;
-end;
-
-if ismember([bottomrowY leftcolX],[handles.i handles.j],'rows') | ismember([bottomrowY rightcolX],[handles.i handles.j],'rows') | ...
-        ismember([uprowY leftcolX],[handles.i handles.j],'rows') | ismember([uprowY rightcolX],[handles.i handles.j],'rows')
-    errordlg('Your Selection is Invalid...');
-    return;
-end
-
-
-
-
-% --------------------- Fill loop ----------------------------
-
-for i1 = bottomrowY:uprowY
-    handles.i(sizeI+1:sizeI+numofcols,1)    =   i1;
-    handles.j(sizeJ+1:sizeJ+numofcols,1)    =   leftcolX:rightcolX;
-    sizeI   =   sizeI+numofcols;
-    sizeJ   =   sizeJ+numofcols;
-end
-% ------------- plot ----------------------
-
-lx_box=limX(1,1)+(leftcolX-1)*handles.gridX*~plotstateY;
-rx_box=limX(1,1)+(rightcolX-1)*handles.gridX;
-uy_box=limY(1,1)+(uprowY-1)*handles.gridY;
-by_box=limY(1,1)+(bottomrowY-1)*handles.gridY*~plotstateX;
-
-
-x1 = [lx_box rx_box rx_box lx_box lx_box];
-y1 = [by_box by_box uy_box uy_box by_box];
-hold on
-handles.selectionbox = plot(x1,y1,'--b','LineWidth',1.5);
-hold off
-handles.previousSel=[leftcolX rightcolX bottomrowY uprowY];
-
-guidata(handles.fig,handles);
-
-
-% --- Executes on button press in pushbutton_selectall.
-function pushbutton_selectall_Callback(hObject, eventdata, handles)
-set(handles.pushbutton_selectpoints,'Enable','off');
-set(handles.rowpushbutton,'Enable','off');
-set(handles.colpushbutton,'Enable','off');
-set(handles.pushbutton_selectreg,'Enable','off');
-set(handles.pushbutton_selectall,'Enable','off');
-handles.Allselected=1;
-update_gui(hObject,[],guidata(hObject));
-handles.i=[]; handles.j=[]; handles.previousSel=[];
-limX=xlim; limY=ylim;
-x1 = [limX(1,1) limX(1,2) limX(1,2) limX(1,1) limX(1,1)];
-y1 = [limY(1,1) limY(1,1) limY(1,2) limY(1,2) limY(1,1)];
-hold on
-handles.selectionbox = plot(x1,y1,':b','LineWidth',4);
-hold off
-leftcolX    =   1;
-rightcolX   =   fix((limX(1,2)-limX(1,1))/handles.gridX)+1;
-bottomrowY  =   1;
-uprowY      =   fix((limY(1,2)-limY(1,1))/handles.gridY)+1;
-% uprowY      =   fix((limY(1,2)-limY(1,1))/handles.gridY+1)+1;
-numofcols=rightcolX-leftcolX+1;
-sizeI=size(handles.i,1);
-sizeJ=size(handles.j,1);
-for i1 = bottomrowY:uprowY
-    handles.i(sizeI+1:sizeI+numofcols,1)=i1;
-    handles.j(sizeJ+1:sizeJ+numofcols,1)=leftcolX:rightcolX;
-    sizeI=sizeI+numofcols; sizeJ=sizeJ+numofcols;
-end
-guidata(handles.fig,handles);
-
-
-% --- Executes on button press in pushbutton_time.
-function pushbutton_time_Callback(hObject, eventdata, handles)
-if ~isempty(handles.i)
-    timeboxHandle = timebox(handles); % timebox includes both versions with if ... else
-    guidata(handles.fig,handles);
-else
-    errordlg('Select region of interest');
-end
-
-
-
-% --- Executes on button press in pushbutton_profile1.
-function pushbutton_profile1_Callback(hObject, eventdata, handles)
-if isempty(handles.property) | isempty(handles.i)
-    errordlg('First, pick the quantity and region of interest !!!');
-else
-    distribHandle = distrib(handles);  % call to spatialbox
-    handles.distribOn = 1;
-end;
-
-guidata(handles.fig,handles);
-
-
-% --- Executes on button press in pushbutton_reset.
-function pushbutton_reset_Callback(hObject, eventdata, handles)
-
-handles.i = []; handles.j = [];
-handles.rowlock=0; handles.columnlock=0;
-handles.previousSel=[];
-set(handles.pushbutton_selectpoints,'Enable','on');
-set(handles.pushbutton_selectreg,'Enable','on');
-set(handles.colpushbutton,'Enable','on');
-set(handles.pushbutton_selectall,'Enable','on');
-set(handles.rowpushbutton,'Enable','on');
-guidata(handles.fig,handles);
-update_gui(gcbo,[],guidata(gcbo));
-
-
-% --- Executes during object creation, after setting all properties.
-function figure_gradpiv_CreateFcn(hObject, eventdata, handles)
-
-load cil_logo
-image(im,'Parent',findobj(hObject,'type','axes')); %handles.axes_main);
-axis off
-
-
-% --- Executes during object creation, after setting all properties.
-function axes_main_CreateFcn(hObject, eventdata, handles)
-
-handles.axes_main = hObject;
-guidata(hObject, handles);
-
-
-
-
-function hh = quiverc(varargin)
-% Modified QUIVER() that uses Patches instead of lines and allows
-% to color arrows and have updated colorbar, according to the
-% correct color data mapping. Arrows are of the same type as in quiver plot.
-%
-%   Modified version: (c) Alex Liberzon
-%   $Revision: 1.02 $  $ Date: 05/10/2002 $
-%   See also: HELP QUIVER (skipped here)
-
-
-% Arrow head parameters
-alpha = 0.33; % Size of arrow head relative to the length of the vector
-beta = 0.33;  % Width of the base of the arrow head relative to the length
-autoscale = 1; % Autoscale if ~= 0 then scale by this.
-plotarrows = 1; % Plot arrows
-sym = '';
-
-filled = 0;
-ls = '-';
-ms = '';
-col = '';
-
-nin = nargin;
-% Parse the string inputs
-while isstr(varargin{nin}),
-    vv = varargin{nin};
-    if ~isempty(vv) & strcmp(lower(vv(1)),'f')
-        filled = 1;
-        nin = nin-1;
-    else
-        [l,c,m,msg] = colstyle(vv);
-        if ~isempty(msg),
-            error(sprintf('Unknown option "%s".',vv));
-        end
-        if ~isempty(l), ls = l; end
-        if ~isempty(c), col = c; end
-        if ~isempty(m), ms = m; plotarrows = 0; end
-        if isequal(m,'.'), ms = ''; end % Don't plot '.'
-        nin = nin-1;
-    end
-end
-
-error(nargchk(2,6,nin));
-
-% Check numeric input arguments
-if nin<4, % quiver(u,v) or quiver(u,v,s)
-    [msg,x,y,u,v] = xyzchk(varargin{1:2});
-else
-    [msg,x,y,u,v] = xyzchk(varargin{1:4});
-end
-if ~isempty(msg), error(msg); end
-
-if nin==4 | nin==6, % quiver(u,v,z,s) or quiver(x,y,u,v,z,s)
-    autoscale = varargin{nin-1};
-    z = varargin{nin};
-end
-
-% Scalar expand u,v
-if prod(size(u))==1, u = u(ones(size(x))); end
-if prod(size(v))==1, v = v(ones(size(u))); end
-
-if autoscale,
-    if min(size(x))==1
-        n=sqrt(prod(size(x)));
-        m=n;
-    else
-        [m,n]=size(x);
-    end
-    delx = diff([min(x(:)) max(x(:))])/n;
-    dely = diff([min(y(:)) max(y(:))])/m;
-    del = delx.^2 + dely.^2;
-    if del>0
-        len = sqrt((u.^2 + v.^2)/del);
-        maxlen = max(len(:));
-    else
-        maxlen = 0;
+    if handles.dx == 0 && handles.dy == 0
+        handles.x = permute(handles.x,[2 1]);
+        handles.y = permute(handles.y,[2 1]);
+        handles.u = permute(handles.u,[2 1 3]);
+        handles.v = permute(handles.v,[2 1 3]);
+        handles.dx = handles.x(1,2) - handles.x(1,1);
+        handles.dy = handles.y(2,1) - handles.y(1,1);
+        tmprows = cols;
+        cols = rows;
+        rows = tmprows;
     end
     
-    if maxlen>0
-        autoscale = autoscale*0.9 / maxlen;
-    else
-        autoscale = autoscale*0.9;
-    end
-    u = u*autoscale; v = v*autoscale;
-end
-
-
-ax = newplot;
-next = lower(get(ax,'NextPlot'));
-hold_state = ishold;
-
-% Make velocity vectors
-x = x(:).'; y = y(:).';
-u = u(:).'; v = v(:).';
-uu = [x;x+u;repmat(NaN,size(u))];
-vv = [y;y+v;repmat(NaN,size(u))];
-
-% Prepare color matrix
-z = [z(:)';z(:)';NaN*z(:)'];
-
-h1 = patch([uu(:),uu(:)],[vv(:),vv(:)], [z(:),z(:)],'Parent',ax,'EdgeColor','Flat','FaceColor','None');
-
-if plotarrows,
-    % Make arrow heads and plot them
-    hu = [x+u-alpha*(u+beta*(v+eps));x+u; ...
-        x+u-alpha*(u-beta*(v+eps));repmat(NaN,size(u))];
-    hv = [y+v-alpha*(v-beta*(u+eps));y+v; ...
-        y+v-alpha*(v+beta*(u+eps));repmat(NaN,size(v))];
-    hold on
-    % Modify color matrix
-    z = [z(1,:); z];
-    h2 = patch([hu(:),hu(:)],[hv(:),hv(:)], [z(:),z(:)],'Parent',ax,'EdgeColor','Flat','FaceColor','None');
-    
-else
-    h2 = [];
-end
-
-if ~isempty(ms), % Plot marker on base
-    hu = x; hv = y;
-    hold on
-    h3 = plot(hu(:),hv(:),[col ms]);
-    if filled, set(h3,'markerfacecolor',get(h1,'color')); end
-else
-    h3 = [];
-end
-
-if ~hold_state, hold off, view(2); set(ax,'NextPlot',next); end
-
-if nargout > 0, hh = [h1;h2;h3]; end
-
-
-% --- Executes on button press in rowpushbutton.
-function rowpushbutton_Callback(hObject, eventdata, handles)
-
-set(handles.pushbutton_selectpoints,'Enable','off');
-set(handles.pushbutton_selectreg,'Enable','off');
-set(handles.colpushbutton,'Enable','off');
-set(handles.pushbutton_selectall,'Enable','off');
-
-set(handles.axes_main,'NextPlot','Add');
-limX = xlim;
-limY = ylim;
-leftcolX   = 1;
-bottomrowY = 1;
-
-
-while 1
-    
-    [x1,y1, buttonNumber] = ginput(1);
-    
-    % When the right button is pressed, stop the loop
-    if (buttonNumber == 2) | (buttonNumber==3)
-        break;
-    end;
-    col = fix (( x1 - limX(1,1) )/ handles.gridX+0.5  )+1;
-    row = fix(( y1 - limY(1,1) )/ handles.gridY+0.5  )+1;
-    % check for errors ----------------
-    if col<1 | col>(fix((limX(1,2)-limX(1,1))/handles.gridX)+1) | row<1 | row...
-            >(fix((limY(1,2)-limY(1,1))/handles.gridY)+1);
-        guidata(handles.fig,handles);
-        return;
-    end;
-    % ---------------------------------
-    sizeI = size(handles.i,1);
-    rightcolX = fix(( limX(1,2)-limX(1,1) )/  handles.gridX )+1;
-    uprowY    = fix(( limY(1,2)-limY(1,1) )/  handles.gridY )+1;
-    % uprowY    = fix(( limY(1,2)-limY(1,1) )/  handles.gridY +1)+1; % Alex,
-    % 26.10
-    sizeJ = size(handles.j,1);
-    numofcols = rightcolX - leftcolX + 1;
-    numofrows = uprowY - bottomrowY + 1;
-    
-    handles.i(sizeI+1:sizeI+numofrows,1) = 1:uprowY ;
-    handles.j(sizeJ+1:sizeJ+numofrows,1) = col;
-    row = 1:uprowY;
-    topLeft(1)=uprowY; bottomRight(1)=1;
-    
-    line(limX(1,1)+(col-1)*...
-        handles.gridX,limY(1,1)+(row-1)*handles.gridY,'Marker','o','Color','k','MarkerSize',8);
     
     
-end;
-guidata(handles.fig,handles);
-
-% --- Executes on button press in colpushbutton.
-function colpushbutton_Callback(hObject, eventdata, handles)
-% hObject    handle to colpushbutton (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-set(handles.pushbutton_selectpoints,'Enable','off');
-set(handles.pushbutton_selectreg,'Enable','off');
-set(handles.rowpushbutton,'Enable','off');
-set(handles.pushbutton_selectall,'Enable','off');
-
-set(handles.axes_main,'NextPlot','Add');
-limX = xlim;
-limY = ylim;
-leftcolX   = 1;
-bottomrowY = 1;
-
-while 1
-    
-    [x1,y1, buttonNumber] = ginput(1);
-    
-    % When the right button is pressed, stop the loop
-    if (buttonNumber == 2) | (buttonNumber==3)
-        break;
-    end;
-    col = fix (( x1 - limX(1,1) )/ handles.gridX+0.5  )+1;
-    row = fix(( y1 - limY(1,1) )/ handles.gridY+0.5  )+1;
-    % -------- find the corners of rectangle ----
-    
-    
-    % check for errors ----------------
-    if col<1 | col>(fix((limX(1,2)-limX(1,1))/handles.gridX)+1) | row<1 | row...
-            >(fix((limY(1,2)-limY(1,1))/handles.gridY)+1);
-        guidata(handles.fig,handles);
-        return;
-    end;
-    % ---------------------------------
-    sizeI = size(handles.i,1);
-    rightcolX = fix(( limX(1,2)-limX(1,1) )/  handles.gridX )+1;
-    uprowY    = fix(( limY(1,2)-limY(1,1) )/  handles.gridY )+1;
-    sizeJ = size(handles.j,1);
-    numofcols = rightcolX - leftcolX + 1;
-    numofrows = uprowY - bottomrowY + 1;
-    %
-    handles.i(sizeI+1:sizeI+numofcols,1) = row;
-    handles.j(sizeJ+1:sizeJ+numofcols,1) = 1:rightcolX;
-    col = 1:rightcolX;
-    %
-    line(limX(1,1)+(col-1)*...
-        handles.gridX,limY(1,1)+(row-1)*handles.gridY,'Marker','o','Color','k','MarkerSize',8);
-end;
-
-
-guidata(handles.fig,handles);
-
-
-% --- Executes during object creation, after setting all properties.
-function ed_max_CreateFcn(hObject, eventdata, handles)
-if ispc
-    set(hObject,'BackgroundColor','white');
-else
-    set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
-end
-
-
-
-% --------------------------------------------------------------------
-function export2figure_Callback(hObject, eventdata, handles)
-handles.export_figure = figure;
-copyobj(handles.axes_main,handles.export_figure);
-
-set(handles.export_figure,'Units','normalized');
-set(get(handles.export_figure,'children'),'Units','normalized');
-set(get(handles.export_figure,'children'),'Position',[0.13 0.11 0.775 0.815]);
-set(get(handles.export_figure,'children'),'Box','on');
-
-if isfield(handles,'color_flag') & handles.colorbar_flag
-    colorbar;
-    % mcolorbar; % (get(handles.export_figure,'Children'));
-end
-guidata(handles.fig, handles);
-
-
-% --- Executes on button press in pushbutton_stats.
-function pushbutton_stats_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton_stats (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-
-% --------------------------------------------------------------------
-function loadMat_Callback(hObject, eventdata, handles)
-% hObject    handle to loadMat (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-global orighandles;
-if isfield(handles,'restoreorig')
-    handles = orighandles;
-end
-handles.restoreorig = 1;
-handles.dt = 1;
-handles.state3d = 0;
-
-
-try
-    % Check the contents of the MAT file, if it's coordinates only or full file
-    curdir = cd;
-    % [coordMatfile,coordMatpath] = uigetfile('*.mat','Choose Coordinates or EXPORTED MAT file');
-    coordMatfile = uipickfiles('FilterSpec','*.mat');
-    w = who('-file',coordMatfile{1});
-    
-    
-    exportedMat = false;
-    if sum(cellfun(@sum,strfind(w,'xUnits'))) > 0, exportedMat = true; end
-    
-    
-    
-    switch exportedMat
-        case true
-            % load "ready" dataset, no need for double loading of
-            % coordinates and velocities
-            tmp = load(coordMatfile{1});
-            handles.x = tmp.x;
-            handles.y = tmp.y;
-            handles.u = tmp.u;
-            handles.v = tmp.v;
-            handles.uf = tmp.uf;
-            handles.vf = tmp.vf;
-            handles.files = tmp.files;
-            handles.path = tmp.path;
-            handles.dx = tmp.dx;
-            handles.dy = tmp.dy;
-            handles.dudx = tmp.dudx;
-            handles.dvdx = tmp.dvdx;
-            handles.dudy = tmp.dudy;
-            handles.dvdy = tmp.dvdy;
-            handles.gridX = tmp.gridX;
-            handles.gridY = tmp.gridY;
-            handles.N = tmp.N;
-            handles.xUnits = tmp.xUnits;
-            handles.velUnits = tmp.velUnits;
-            clear tmp
-            
-        case false
-            load(coordMatfile{1});
-            
-            
-            if exist('x','var')
-                handles.x = x;
-                handles.y = y; % max(y(:)) - y;
-                clear x y
-            elseif exist('X','var')
-                handles.x = X;
-                handles.y = Y; % max(Y(:)) - Y;
-                clear X Y
-            else
-                errordlg('Coordinates file does not include x or X variables');
-                set(handles.fig,'pointer','arrow');
-            end
-            coordMatfile = uipickfiles('Type',{'*.mat','Velocity MAT file'});
-            load(coordMatfile{1});
-            if exist('fu','var')
-                handles.u = fu;
-                handles.v = fv;
-                clear fu fv
-            elseif exist('U','var')
-                handles.u = U;
-                handles.v = V;
-                clear U V
-            elseif exist('u','var')
-                handles.u = u;
-                handles.v = v;
-                clear u v
-            else
-                errordlg('Wrong velocity names');
-            end
-            
-            
-            [rows,cols,handles.N] = size(handles.u);
-            
-            handles.xUnits = 'pix';
-            handles.velUnits = 'pix/s';
-        otherwise
-            ;
-    end
-catch
-    
-    errordlg('Something wrong with MAT files'); % vector -> MAT
-    set(handles.fig,'pointer','arrow');
-    return
-end
-
-try
-    set(handles.data_info,'String',coordMatfile); % july 27, Alex's Laptop, SVN assembla
-catch
-    setfield(handles,'data_info',coordMatfile); % 18.12.10, dropbox
-end
-handles.current = 1;                      % current file beeing displayed
-% Display first file number, total number of files
-set(handles.edit_current,'String',handles.current);
-set(handles.edit_numfields,'String',handles.N);
-
-% Initialize color, number of colors for contours
-handles.numcolors = 10;                   % default number of colors
-set(handles.edit_numcolors,'String', handles.numcolors);
-
-% Cat the mean values at the end
-if ~exportedMat
+    % Cat the mean values at the end
     handles.u(:,:,handles.N+1) = mean(handles.u(:,:,1:handles.N),3);
     handles.v(:,:,handles.N+1) = mean(handles.v(:,:,1:handles.N),3);
     if handles.state3d
@@ -2080,11 +1274,10 @@ if ~exportedMat
         end
     end
     
-    % handles.dx = abs(handles.x(1,1) - handles.x(1,2));
-    % handles.dy = abs(handles.y(1,1) - handles.y(2,1));
-    % Bug, fixed at 16.06 after the email of Hai
-    handles.dx = handles.x(1,2) - handles.x(1,1);
-    handles.dy = handles.y(2,1) - handles.y(1,1);
+    
+    
+    
+    
     
     % Preallocate memory and calculate all the necessary quantities
     % Fluctuations (last one is zero, we do not need it)
@@ -2117,723 +1310,1567 @@ if ~exportedMat
     % handles.dudx(:,1:2,:)       = NaN;
     % handles.dudx(:,end-1:end,:) = NaN;
     
-end
-
-
-%
-% More defaults
-handles.arrow_scale = 1;                % default scale
-set(handles.edit_arrow_size,'String',handles.arrow_scale);
-
-% Default situation, instantaneous, not Ensemble, not fluctuations
-set(handles.checkbox_ensemble,'Value',0);
-set(handles.checkbox_fluct,'Value',0);
-
-% No colors, no labels
-handles.color = 0;                % display colored / black figure
-handles.alltodisp = 0;            % default all_to display is unset
-handles.allfields = 0;
-handles.labelit = 0;              % label for contour
-handles.colorbar_flag = 0;
-handles.current_index = handles.current;
-handles.distribOn=0;
-handles.rowlock=0; handles.columnlock=0;
-handles.previousSel=[];
-
-% These are future values, for the TimeBox
-handles.i=[];
-handles.j=[];
-handles.PointsH=[];
-handles.Allselected=0;
-
-% handles.dx = handles.x(1,2) - handles.x(1,1);
-% handles.dy = handles.y(2,1) - handles.y(1,1);
-
-% abs() is added on Dec.13,2004. by Alex on IHW_Liberzon computer
-%
-handles.gridX = abs(handles.x(1,2) - handles.x(1,1));
-handles.gridY = abs(handles.y(1,1) - handles.y(2,1));
-
-% Show some and hide some controls
-set(handles.popupmenu_quantity,'Visible','on');
-set(handles.popupmenu_quantity,'Value',1);
-set(handles.popupmenu_contour_type,'Visible','on');
-set(handles.popupmenu_contour_type,'Value',1);
-set(handles.popupmenu_eachfield,'Visible','on');
-set(handles.popupmenu_eachfield,'Value',1);
-
-% Some only part of them in Enable mode
-set(handles.checkbox_arrow,'Enable','On');
-set(handles.edit_arrow_size,'Enable','On');
-set(handles.checkbox_fluct,'Enable','On');
-set(handles.checkbox_ensemble,'Enable','On');
-set(handles.popupmenu_quantity,'Enable','On');
-set(handles.pushbutton_previous,'Enable','On');
-set(handles.pushbutton_next,'Enable','On');
-set(handles.edit_current,'Enable','On');
-set(handles.pushbutton_animate,'Enable','On');
-set(handles.pushbutton_save_movie,'Enable','on');
-% set(handles.pushbutton_stats,'Enable','on');
-
-
-% Properties
-set(handles.popupmenu_quantity,'String',handles.inst_list);
-handles.property = [];
-
-% ---------------- store all handles of spatial controls ------------------
-% handles.spatial_controls=[handles.checkbox_ensemble,handles.checkbox_fluct,handles.checkbox_arrow,handles.checkbox_arrow_color,...
-%         handles.checkbox_label,handles.checkbox_colorbar,handles.edit_arrow_size,handles.edit_numcolors,...
-%         handles.edit_current,handles.edit_numfields,...
-%         handles.text_contour_quantity, handles.text_contourtype, handles.text_numberofcolors, handles.text7,handles.text2,...
-%         handles.text_arrow_size, handles.pushbutton_previous, handles.pushbutton_next, ...
-%         handles.pushbutton_animate, handles.pushbutton_save_movie, ...
-%         handles.frame_controls,handles.frame8,handles.frame_contour_quantity,handles.frame_contour_type,handles.frame7,...
-%         handles.frame_arrow, handles.text5, handles.popupmenu_quantity,handles.popupmenu_contour_type,...
-%         handles.popupmenu_eachfield];% ,handles.pushbutton_stats];
-
-% -------------- store all handles of select controls ----------------
-% handles.select_controls=[handles.pushbutton_selectpoints,handles.pushbutton_selectreg,handles.pushbutton_selectall,...
-%          handles.pushbutton_profile1,handles.pushbutton_time,...
-%          handles.pushbutton_reset, handles.rowpushbutton, handles.colpushbutton];
-
-handles.arrow_ctrls=[handles.edit_arrow_size,handles.checkbox_arrow,handles.checkbox_arrow_color];
-% handles.stat_controls=[handles.ed_mean,handles.ed_std,handles.ed_min,handles.ed_max,handles.ed_text,...
-%         handles.ed_pushsavestl,handles.ed_frame,handles.ed_pushclose,handles.ed_textmean,...
-%         handles.ed_textstd,handles.ed_textmax,handles.ed_textmin];
-
-
-set(handles.pushbutton_spatial,'Enable','on');
-set(handles.pushbutton_select,'Enable','on');
-
-set(handles.fig,'pointer','arrow');
-
-% added on 10.04.06 for R12SP3 version
-handles.axpos = get(handles.axes_main,'Position');
-
-% Update all handles structure
-guidata(handles.fig,handles);
-
-% Make default plot
-update_gui(handles.fig,[],handles);
-return
-% --------------------------------------------------------------------
-
-
-% --------------------------------------------------------------------
-function loadTXT_Callback(hObject, eventdata, handles)
-% hObject    handle to loadTXT (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-global orighandles;
-if isfield(handles,'restoreorig')
-    handles = orighandles;
-end
-
-handles.restoreorig = 1;
-handles.state3d = 0;
-handles.dt  = 1;
-
-
-try
-    % [gui_files,gui_path] = uigetfile('*.txt','Select the location and the type of the TXT file');
-    handles.files = uipickfiles; % April 2, 2010, AL
+    %
+    % More defaults
+    handles.arrow_scale = 1;                % default scale
+    set(handles.edit_arrow_size,'String',handles.arrow_scale);
+    
+    % Default situation, instantaneous, not Ensemble, not fluctuations
+    set(handles.checkbox_ensemble,'Value',0);
+    set(handles.checkbox_fluct,'Value',0);
+    
+    % No colors, no labels
+    handles.color = 0;                % display colored / black figure
+    handles.alltodisp = 0;            % default all_to display is unset
+    handles.allfields = 0;
+    handles.labelit = 0;              % label for contour
+    handles.colorbar_flag = 0;
+    handles.current_index = handles.current;
+    handles.distribOn=0;
+    handles.rowlock=0; handles.columnlock=0;
+    handles.previousSel=[];
+    
+    % These are future values, for the TimeBox
+    handles.i=[];
+    handles.j=[];
+    handles.PointsH=[];
+    handles.Allselected=0;
+    
+    % handles.dx = handles.x(1,2) - handles.x(1,1);
+    % handles.dy = handles.y(2,1) - handles.y(1,1);
+    
+    % abs() is added on Dec.13,2004. by Alex on IHW_Liberzon computer
+    %
+    handles.gridX = abs(handles.x(1,2) - handles.x(1,1));
+    handles.gridY = abs(handles.y(1,1) - handles.y(2,1));
+    
+    % Show some and hide some controls
+    set(handles.popupmenu_quantity,'Visible','on');
+    set(handles.popupmenu_quantity,'Value',1);
+    set(handles.popupmenu_contour_type,'Visible','on');
+    set(handles.popupmenu_contour_type,'Value',1);
+    set(handles.popupmenu_eachfield,'Visible','on');
+    set(handles.popupmenu_eachfield,'Value',1);
+    
+    % Some only part of them in Enable mode
+    set(handles.checkbox_arrow,'Enable','On');
+    set(handles.edit_arrow_size,'Enable','On');
+    set(handles.checkbox_fluct,'Enable','On');
+    set(handles.checkbox_ensemble,'Enable','On');
+    set(handles.popupmenu_quantity,'Enable','On');
+    set(handles.pushbutton_previous,'Enable','On');
+    set(handles.pushbutton_next,'Enable','On');
+    set(handles.edit_current,'Enable','On');
+    set(handles.pushbutton_animate,'Enable','On');
+    set(handles.pushbutton_save_movie,'Enable','on');
+    % set(handles.pushbutton_stats,'Enable','on');
     
     
-    handles.N = length(handles.files); % number of files selected
-    if  handles.N > 0
-        [handles.path,junk,junk] = fileparts(handles.files{1});
-        set(handles.fig,'pointer','watch');
-    else
-        return
-    end
+    % Properties
+    set(handles.popupmenu_quantity,'String',handles.inst_list);
+    handles.property = [];
     
-    %%%%%%%%%%%%%%%%
+    % ---------------- store all handles of spatial controls ------------------
+    % handles.spatial_controls=[handles.checkbox_ensemble,handles.checkbox_fluct,handles.checkbox_arrow,handles.checkbox_arrow_color,...
+    %         handles.checkbox_label,handles.checkbox_colorbar,handles.edit_arrow_size,handles.edit_numcolors,...
+    %         handles.edit_current,handles.edit_numfields,...
+    %         handles.text_contour_quantity, handles.text_contourtype, handles.text_numberofcolors, handles.text7,handles.text2,...
+    %         handles.text_arrow_size, handles.pushbutton_previous, handles.pushbutton_next, ...
+    %         handles.pushbutton_animate, handles.pushbutton_save_movie, ...
+    %         handles.frame_controls,handles.frame8,handles.frame_contour_quantity,handles.frame_contour_type,handles.frame7,...
+    %         handles.frame_arrow, handles.text5, handles.popupmenu_quantity,handles.popupmenu_contour_type,...
+    %         handles.popupmenu_eachfield];% ,handles.pushbutton_stats];
     
+    % -------------- store all handles of select controls ----------------
+    % handles.select_controls=[handles.pushbutton_selectpoints,handles.pushbutton_selectreg,handles.pushbutton_selectall,...
+    %          handles.pushbutton_profile1,handles.pushbutton_time,...
+    %          handles.pushbutton_reset, handles.rowpushbutton, handles.colpushbutton];
     
-    d = load(handles.files{1});
-    
-    
-    x = d(:,1);
-    x = x(x~=0);
-    unX = unique(x);
-    
-    minX = min(unX);
-    maxX = max(unX);
-    dX = ceil((maxX-minX)/(length(unX)-1));
-    
-    y = d(:,2);
-    y = y(y~=0);
-    unY = unique(y);
-    
-    minY = min(unY);
-    maxY = max(unY);
-    dY = ceil((maxY-minY)/(length(unY)-1));
-    
-    [handles.x,handles.y] = meshgrid(minX:dX:maxX,minY:dY:maxY);
-    [rows,cols] = size(handles.x);
-    
-    [handles.u,handles.v] = deal(zeros(rows,cols,handles.N+1)); % 11.04.04, Alex
-    
-    hwaitbar = waitbar(0,'Please wait...');
+    handles.arrow_ctrls=[handles.edit_arrow_size,handles.checkbox_arrow,handles.checkbox_arrow_color];
+    % handles.stat_controls=[handles.ed_mean,handles.ed_std,handles.ed_min,handles.ed_max,handles.ed_text,...
+    %         handles.ed_pushsavestl,handles.ed_frame,handles.ed_pushclose,handles.ed_textmean,...
+    %         handles.ed_textstd,handles.ed_textmax,handles.ed_textmin];
     
     
+    set(handles.pushbutton_spatial,'Enable','on');
+    set(handles.pushbutton_select,'Enable','on');
     
-    tmp = d;
-    tmp(tmp(:,1) == 0) = [];
-    tmp(tmp(:,2) == 0) = [];
-    % y = tmp(:,2);
-    %  x = tmp(:,1);
-    for j = 1:length(tmp(:,1))
-        [m(j),n(j)] = find(handles.x == tmp(j,1) & handles.y == tmp(j,2));
-    end
-    
-    
-    for i = 1:handles.N
-        waitbar(i/handles.N,hwaitbar)
-        % x = d(:,1,i);
-        % tmp = d(x~=0,:,i);
-        % presumably cleans bug values with zero in x and y - not clear
-        % yet, 23.3.11, Alex
-        
-        tmp = load(handles.files{i});
-        tmp(tmp(:,1) == 0) = [];
-        tmp(tmp(:,2) == 0) = [];
-        
-        for j = 1:length(tmp(:,1))
-            handles.u(m(j),n(j),i) = tmp(j,3);
-            handles.v(m(j),n(j),i) = tmp(j,4);
-        end
-    end
-    
-    close(hwaitbar)
-    handles.xUnits = 'pix';
-    handles.velUnits = 'pix/dt';
-    
-    clear d tmp x y
-    
-catch
-    errordlg('Something wrong with TXT files');
     set(handles.fig,'pointer','arrow');
-    return
-end
-
-handles.current = 1;                      % current file beeing displayed
-% Display first file number, total number of files
-set(handles.edit_current,'String',handles.current);
-set(handles.edit_numfields,'String',handles.N);
-
-% Initialize color, number of colors for contours
-handles.numcolors = 10;                   % default number of colors
-set(handles.edit_numcolors,'String', handles.numcolors);
-
-% Cat the mean values at the end
-handles.u(:,:,handles.N+1) = mean(handles.u(:,:,1:handles.N),3);
-handles.v(:,:,handles.N+1) = mean(handles.v(:,:,1:handles.N),3);
-if handles.state3d
-    handles.w(:,:,handles.N+1) = mean(handles.w(:,:,1:handles.N),3);
-    handles.wf = zeros(rows,cols,handles.N);
-    for i = 1:handles.N
-        handles.wf(:,:,i) = handles.w(:,:,i) - handles.w(:,:,handles.N+1);
+    
+    % added on 10.04.06 for R12SP3 version
+    handles.axpos = get(handles.axes_main,'Position');
+    
+    % Update all handles structure
+    guidata(handles.fig,handles);
+    
+    % Make default plot
+    update_gui(handles.fig,[],handles);
+    
+    
+    
+    % --------------------------------------------------------------------
+    function exit_Callback(hObject, eventdata, handles)
+    % Find the highest parent - figure, and close it.
+    while ~strcmpi(get(hObject,'Type'),'figure'),
+        hObject = get(hObject,'Parent');
     end
-end
-
-% handles.dx = abs(handles.x(1,1) - handles.x(1,2));
-% handles.dy = abs(handles.y(1,1) - handles.y(2,1));
-% Bug, fixed at 16.06 after the email of Hai
-handles.dx = handles.x(1,2) - handles.x(1,1);
-handles.dy = handles.y(2,1) - handles.y(1,1);
-
-% Preallocate memory and calculate all the necessary quantities
-% Fluctuations (last one is zero, we do not need it)
-handles.uf = zeros(rows,cols,handles.N);
-handles.vf = zeros(rows,cols,handles.N);
-%
-for i = 1:handles.N
-    handles.vf(:,:,i) = handles.v(:,:,i) - handles.v(:,:,handles.N+1);
-end
-%
-for i = 1:handles.N
-    handles.uf(:,:,i) = handles.u(:,:,i) - handles.u(:,:,handles.N+1);
-end
-
-% Derivatives
-handles.dudx = zeros(rows,cols,handles.N+1);
-handles.dudy = zeros(rows,cols,handles.N+1);
-handles.dvdx = zeros(rows,cols,handles.N+1);
-handles.dvdy = zeros(rows,cols,handles.N+1);
-%
-for i = 1:handles.N+1
-    [handles.dudx(:,:,i),handles.dudy(:,:,i)] = lsgradient(handles.u(:,:,i),handles.dx, handles.dy);
-    [handles.dvdx(:,:,i),handles.dvdy(:,:,i)] = lsgradient(handles.v(:,:,i),handles.dx, handles.dy);
-end
-
-% Possible future development, eliminating strong gradients
-% on the borders
-% handles.dudx(1:2,:,:)       = NaN;
-% handles.dudx(end-1:end,:,:) = NaN;
-% handles.dudx(:,1:2,:)       = NaN;
-% handles.dudx(:,end-1:end,:) = NaN;
-
-%
-% More defaults
-handles.arrow_scale = 1;                % default scale
-set(handles.edit_arrow_size,'String',handles.arrow_scale);
-
-% Default situation, instantaneous, not Ensemble, not fluctuations
-set(handles.checkbox_ensemble,'Value',0);
-set(handles.checkbox_fluct,'Value',0);
-
-% No colors, no labels
-handles.color = 0;                % display colored / black figure
-handles.alltodisp = 0;            % default all_to display is unset
-handles.allfields = 0;
-handles.labelit = 0;              % label for contour
-handles.colorbar_flag = 0;
-handles.current_index = handles.current;
-handles.distribOn=0;
-handles.rowlock=0; handles.columnlock=0;
-handles.previousSel=[];
-
-% These are future values, for the TimeBox
-handles.i=[];
-handles.j=[];
-handles.PointsH=[];
-handles.Allselected=0;
-
-% handles.dx = handles.x(1,2) - handles.x(1,1);
-% handles.dy = handles.y(2,1) - handles.y(1,1);
-
-% abs() is added on Dec.13,2004. by Alex on IHW_Liberzon computer
-%
-handles.gridX = abs(handles.x(1,2) - handles.x(1,1));
-handles.gridY = abs(handles.y(1,1) - handles.y(2,1));
-
-% Show some and hide some controls
-set(handles.popupmenu_quantity,'Visible','on');
-set(handles.popupmenu_quantity,'Value',1);
-set(handles.popupmenu_contour_type,'Visible','on');
-set(handles.popupmenu_contour_type,'Value',1);
-set(handles.popupmenu_eachfield,'Visible','on');
-set(handles.popupmenu_eachfield,'Value',1);
-
-% Some only part of them in Enable mode
-set(handles.checkbox_arrow,'Enable','On');
-set(handles.edit_arrow_size,'Enable','On');
-set(handles.checkbox_fluct,'Enable','On');
-set(handles.checkbox_ensemble,'Enable','On');
-set(handles.popupmenu_quantity,'Enable','On');
-set(handles.pushbutton_previous,'Enable','On');
-set(handles.pushbutton_next,'Enable','On');
-set(handles.edit_current,'Enable','On');
-set(handles.pushbutton_animate,'Enable','On');
-set(handles.pushbutton_save_movie,'Enable','on');
-% set(handles.pushbutton_stats,'Enable','on');
-
-
-% Properties
-set(handles.popupmenu_quantity,'String',handles.inst_list);
-handles.property = [];
-
-handles.arrow_ctrls=[handles.edit_arrow_size,handles.checkbox_arrow,handles.checkbox_arrow_color];
-
-set(handles.pushbutton_spatial,'Enable','on');
-set(handles.pushbutton_select,'Enable','on');
-
-set(handles.fig,'pointer','arrow');
-
-% added on 10.04.06 for R12SP3 version
-handles.axpos = get(handles.axes_main,'Position');
-
-% Update all handles structure
-guidata(handles.fig,handles);
-
-% Make default plot
-update_gui(handles.fig,[],handles);
-return
-
-% ---------------------------------------------------------------------
-function [filenames] = ReadTXTDir(dirname,data)
-if nargin < 2
-    data = 'txt';
-end
-
-switch data
-    case{'_noflt.txt'} % a)
-        direc = dir([dirname,filesep,'*_noflt.txt']);
-    case{'_flt.txt'} %b)
-        direc = dir([dirname,filesep,'*_flt.txt']);
-    case{'txt'} % c)
-        direc = dir([dirname,filesep,'*.txt']);
-        tmp = struct('name',[]);
-        k = 0;
-        for i=1:length(direc)
-            if length(findstr(direc(i).name,'flt')) < 1
-                k = k + 1;
-                tmp(k).name = direc(i).name;
+    delete(hObject);
+    
+    % --- Executes on button press in pushbutton_spatial.
+        function pushbutton_spatial_Callback(hObject, eventdata, handles)
+            
+            set(handles.spatial_controls,'Visible','on');
+            set(handles.select_controls,'Visible','off');
+            set(handles.pushbutton_spatial,'FontWeight','bold');
+            set(handles.pushbutton_select,'FontWeight','normal');
+            set(handles.pushbutton_spatial,'String','> Spatial <');
+            set(handles.pushbutton_select,'String','Select');
+            val = get(handles.popupmenu_eachfield,'Value');
+            if val==4   % in case if manual is selected
+                set(handles.edit_min_clim,'Visible','On'); % show 2 editboxes to enter the values
+                set(handles.edit_max_clim,'Visible','On');
+                set(handles.pushbutton_set_clim,'Visible','On');
             end
-        end
-        direc = tmp;
-end
-
-if ~isempty(direc(1).name) && ~isempty(str2num(direc(1).name(1:length(direc(1).name)-4)))
-    for i = 1:length(direc)
-        n(i) = str2num(direc(i).name(1:length(direc(i).name)-4));
-    end
-    [junk,j] = sort(n);
-    direc = direc(j);
-end
-
-filenames={};
-[filenames{1:length(direc),1}] = deal(direc.name);
-% filenames = sortrows(filenames);
-return
-
-
-% --------------------------------------------------------------------
-function Data_Callback(hObject, eventdata, handles)
-% hObject    handle to Data (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-
-% --------------------------------------------------------------------
-function Filter_Callback(hObject, eventdata, handles)
-% hObject    handle to Filter (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-
-% --------------------------------------------------------------------
-function Global_Callback(hObject, eventdata, handles)
-% hObject    handle to Global (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-
-%%%%%%%%%%%%%%%%%%%
-% Reshape U and V matrices in two-dimensional grid and produce
-% velocity vector in U + i*V form (real and imaginary parts):
-
-
-
-[rows,cols] = size(handles.u(:,:,1));
-%     % Remove outlayers - GLOBAL FILTERING
-for i = 1:handles.N
-    vector = sqrt(handles.u(:,:,i).^2 + handles.v(:,:,i).^2);
-    % index = find(vector > (median(vector) + 6*std(vector)));
-    [vector,index,outliers] = deleteoutliers(vector(:),0.05);
-    [k,m] = ind2sub([rows,cols],index);
-    handles.u(k,m,i) = 0;
-    handles.v(k,m,i) = 0;
-end
-
-% Update data
-handles.u(:,:,handles.N+1) = mean(handles.u(:,:,1:handles.N),3);
-handles.v(:,:,handles.N+1) = mean(handles.v(:,:,1:handles.N),3);
-if handles.state3d
-    handles.w(:,:,handles.N+1) = mean(handles.w(:,:,1:handles.N),3);
-    handles.wf = zeros(rows,cols,handles.N);
-    for i = 1:handles.N
-        handles.wf(:,:,i) = handles.w(:,:,i) - handles.w(:,:,handles.N+1);
-    end
-end
-
-handles.dx = handles.x(1,2) - handles.x(1,1);
-handles.dy = handles.y(2,1) - handles.y(1,1);
-
-%
-for i = 1:handles.N
-    handles.vf(:,:,i) = handles.v(:,:,i) - handles.v(:,:,handles.N+1);
-    handles.uf(:,:,i) = handles.u(:,:,i) - handles.u(:,:,handles.N+1);
-end
-%
-for i = 1:handles.N+1
-    [handles.dudx(:,:,i),handles.dudy(:,:,i)] = lsgradient(handles.u(:,:,i),handles.dx, handles.dy);
-    [handles.dvdx(:,:,i),handles.dvdy(:,:,i)] = lsgradient(handles.v(:,:,i),handles.dx, handles.dy);
-end
-
-update_gui(handles.fig,[],handles);
-guidata(handles.fig,handles);
-
-
-update_gui(handles.fig,[],handles);
-guidata(handles.fig,handles)
-
-% --------------------------------------------------------------------
-function Median_Callback(hObject, eventdata, handles)
-% hObject    handle to Median (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-%
-% Adaptive Local Median filtering
-
-kernel = [-1 -1 -1; -1 8 -1; -1 -1 -1];
-[rows,cols] = size(handles.u(:,:,1));
-
-for i = 1:handles.N
-    tmpv = abs(conv2(handles.v(:,:,i),kernel,'same'));
-    tmpu = abs(conv2(handles.u(:,:,i),kernel,'same'));
-    
-    ind = tmpv~=0 & tmpu~=0;
-    lmtv = mean(tmpv(ind)) + 3*std(tmpv(ind));
-    lmtu = mean(tmpu(ind)) + 3*std(tmpu(ind));
-    
-    out = find(tmpu > lmtu  & tmpv > lmtv);
-    
-    [k,m] = ind2sub([rows,cols],out);
-    handles.u(k,m,i) = 0;
-    handles.v(k,m,i) = 0;
-end
-
-% Update data
-
-handles.u(:,:,handles.N+1) = mean(handles.u(:,:,1:handles.N),3);
-handles.v(:,:,handles.N+1) = mean(handles.v(:,:,1:handles.N),3);
-if handles.state3d
-    handles.w(:,:,handles.N+1) = mean(handles.w(:,:,1:handles.N),3);
-    handles.wf = zeros(rows,cols,handles.N);
-    for i = 1:handles.N
-        handles.wf(:,:,i) = handles.w(:,:,i) - handles.w(:,:,handles.N+1);
-    end
-end
-
-handles.dx = handles.x(1,2) - handles.x(1,1);
-handles.dy = handles.y(2,1) - handles.y(1,1);
-
-%
-for i = 1:handles.N
-    handles.vf(:,:,i) = handles.v(:,:,i) - handles.v(:,:,handles.N+1);
-    handles.uf(:,:,i) = handles.u(:,:,i) - handles.u(:,:,handles.N+1);
-end
-%
-for i = 1:handles.N+1
-    [handles.dudx(:,:,i),handles.dudy(:,:,i)] = lsgradient(handles.u(:,:,i),handles.dx, handles.dy);
-    [handles.dvdx(:,:,i),handles.dvdy(:,:,i)] = lsgradient(handles.v(:,:,i),handles.dx, handles.dy);
-end
-
-update_gui(handles.fig,[],handles);
-guidata(handles.fig,handles);
-
-
-update_gui(handles.fig,[],handles);
-guidata(handles.fig,handles);
-
-
-% --------------------------------------------------------------------
-function Crop_Callback(hObject, eventdata, handles)
-% hObject    handle to Crop (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-
-% axes(handles.axes_main);
-handles.rect = getrect(handles.fig);
-rectangle('position',handles.rect,'Curvature',[0 0],'Edgecolor','blue','Linestyle',':');
-% handles.xind = find(handles.x(1,:) > handles.rect(1) & handles.x(1,:) < (handles.rect(1) + handles.rect(3)));
-% handles.yind = find(handles.y(:,1) > handles.rect(2) & handles.y(:,1) < (handles.rect(2) + handles.rect(4)));
-handles.xind = find(handles.x(1,:) < handles.rect(1) | handles.x(1,:) > (handles.rect(1) + handles.rect(3)));
-handles.yind = find(handles.y(:,1) < handles.rect(2) | handles.y(:,1) > (handles.rect(2) + handles.rect(4)));
-
-% w = whos('handles');
-% if w.bytes > 60000000
-%
-%     errordlg('Matlab does not know how to release memory, call Mathworks');
-%
-%
-% else
-%     handles.x = handles.x(handles.yind,handles.xind);
-%     handles.y = handles.y(handles.yind,handles.xind);
-%     handles.u = handles.u(handles.yind,handles.xind,:);
-%     handles.v = handles.v(handles.yind,handles.xind,:);
-%     handles.dudx = handles.dudx(handles.yind,handles.xind,:);
-%     handles.dudy = handles.dudy(handles.yind,handles.xind,:);
-%     handles.dvdx = handles.dvdx(handles.yind,handles.xind,:);
-%     handles.dvdy = handles.dvdy(handles.yind,handles.xind,:);
-%
-%     handles.uf = handles.uf(handles.yind,handles.xind,:);
-%     handles.vf = handles.vf(handles.yind,handles.xind,:);
-%
-% end
-
-
-try
-    handles.x(handles.yind,:) = [];
-    handles.y(handles.yind,:)= [];
-    handles.u(handles.yind,:,:)= [];
-    handles.v(handles.yind,:,:)= [];
-    handles.dudx(handles.yind,:,:)= [];
-    handles.dudy(handles.yind,:,:)= [];
-    handles.dvdx(handles.yind,:,:)= [];
-    handles.dvdy(handles.yind,:,:)= [];
-    
-    handles.uf(handles.yind,:,:)= [];
-    handles.vf(handles.yind,:,:)= [];
-    
-    
-    handles.x(:,handles.xind) = [];
-    handles.y(:,handles.xind)= [];
-    handles.u(:,handles.xind,:)= [];
-    handles.v(:,handles.xind,:)= [];
-    handles.dudx(:,handles.xind,:)= [];
-    handles.dudy(:,handles.xind,:)= [];
-    handles.dvdx(:,handles.xind,:)= [];
-    handles.dvdy(:,handles.xind,:)= [];
-    
-    handles.uf(:,handles.xind,:)= [];
-    handles.vf(:,handles.xind,:)= [];
-    
-    if ~isempty(handles.property)
-        handles.property(handles.yind,:,:) = [];
-        handles.property(:,handles.xind,:) = [];
-    end
-    
-    if ~isempty(handles.uf2)
-        handles.uf2(handles.yind,:,:) = [];
-        handles.uf2(:,handles.xind,:) = [];
-        handles.vf2(handles.yind,:,:) = [];
-        handles.vf2(:,handles.xind,:) = [];
-        
-        handles.rs(handles.yind,:,:) = [];
-        handles.rs(:,handles.xind,:) = [];
-        handles.Tu(handles.yind,:,:) = [];
-        handles.Tu(:,handles.xind,:) = [];
-        handles.diss(handles.yind,:,:) = [];
-        handles.diss(:,handles.xind,:) = [];
-        handles.prod(handles.yind,:,:) = [];
-        handles.prod(:,handles.xind,:) = [];
-    end
-catch
-    errordlg('Something went wrong with crop');
-end
-
-update_gui(handles.fig,[],handles);
-guidata(handles.fig,handles);
-
-
-% --------------------------------------------------------------------
-function interpolate_Callback(hObject, eventdata, handles)
-% hObject    handle to interpolate (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-[rows,cols] = size(handles.u(:,:,1));
-
-
-
-
-
-for i = 1:handles.N
-    
-    u = handles.u(:,:,i);
-    u(u==0) = NaN;
-    handles.u(:,:,i) = inpaint_nans(u,3);
-    u = handles.v(:,:,i);
-    u(u==0) = NaN;
-    handles.v(:,:,i) = inpaint_nans(u,3);
-    
-    %     vector = handles.u(:,:,i) + sqrt(-1)*handles.v(:,:,i);
-    %
-    %     [indx,indy] = find(abs(vector) == 0);
-    %
-    %     while ~isempty(indx)
-    %         for z=1:length(indx)
-    %             k = [max(3,indx(z))-2:min(rows-2,indx(z))+2];
-    %             m = [max(3,indy(z))-2:min(cols-2,indy(z))+2];
-    %             tmpvec = vector(k,m);
-    %             tmpvec = tmpvec(find(tmpvec));
-    %             vector(indx(z),indy(z)) = mean(real(tmpvec))+ sqrt(-1)*mean(imag(tmpvec));
-    %         end
-    %         try
-    %             [indx,indy] = find(abs(vector) == 0);
-    %         catch
-    %             indx = [];
-    %         end
-    %     end
-end
-
-
-% Update data
-
-handles.u(:,:,handles.N+1) = mean(handles.u(:,:,1:handles.N),3);
-handles.v(:,:,handles.N+1) = mean(handles.v(:,:,1:handles.N),3);
-if handles.state3d
-    handles.w(:,:,handles.N+1) = mean(handles.w(:,:,1:handles.N),3);
-    handles.wf = zeros(rows,cols,handles.N);
-    for i = 1:handles.N
-        handles.wf(:,:,i) = handles.w(:,:,i) - handles.w(:,:,handles.N+1);
-    end
-end
-
-handles.dx = handles.x(1,2) - handles.x(1,1);
-handles.dy = handles.y(2,1) - handles.y(1,1);
-
-%
-for i = 1:handles.N
-    handles.vf(:,:,i) = handles.v(:,:,i) - handles.v(:,:,handles.N+1);
-    handles.uf(:,:,i) = handles.u(:,:,i) - handles.u(:,:,handles.N+1);
-end
-%
-for i = 1:handles.N+1
-    [handles.dudx(:,:,i),handles.dudy(:,:,i)] = lsgradient(handles.u(:,:,i),handles.dx, handles.dy);
-    [handles.dvdx(:,:,i),handles.dvdy(:,:,i)] = lsgradient(handles.v(:,:,i),handles.dx, handles.dy);
-end
-
-update_gui(handles.fig,[],handles);
-guidata(handles.fig,handles);
-
-
-% --------------------------------------------------------------------
-function export2MAT_Callback(hObject, eventdata, handles)
-% hObject    handle to export2MAT (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-file = [];
-file = inputdlg('File Name','Input Name for CSV File');
-if ~isempty (file)
-    eval(['save ',file{1},' -struct handles']);
-else
-    errordlg ('Choose a valid file name !!! ');
-end;
-% save exported -struct handles
-
-
-% --------------------------------------------------------------------
-function delete_current_Callback(hObject, eventdata, handles)
-% hObject    handle to delete_current (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% axes(handles.axes_main);
-
-
-handles.u(:,:,handles.current) = [];
-handles.v(:,:,handles.current) = [];
-handles.dudx(:,:,handles.current) = [];
-handles.dudy(:,:,handles.current) = [];
-handles.dvdx(:,:,handles.current) = [];
-handles.dvdy(:,:,handles.current) = [];
-handles.uf(:,:,handles.current) = [];
-handles.vf(:,:,handles.current) = [];
-
-handles.N = handles.N - 1;
-
-update_gui(handles.fig,[],handles);
-guidata(handles.fig,handles);
-
-
-% --- Executes on button press in pod_pushbutton.
-function pod_pushbutton_Callback(hObject, eventdata, handles)
-% hObject    handle to pod_pushbutton (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-if isempty(handles.property) | isempty(handles.i)
-    errordlg('First, pick the quantity and region of interest !!!');
-else
-    podHandle = podbox(handles);  % call to podbox
-    handles.podOn = 1;
-end;
-
-guidata(handles.fig,handles);
-
-
+            
+            % save selection
+            handles.i = []; handles.j = [];
+            handles.rowlock=0; handles.columnlock=0;
+            handles.previousSel=[];
+            
+            update_gui(gcbo,[],guidata(gcbo));
+            guidata(handles.fig,handles);
+            % update_gui(handles.fig,[],handles);
+            
+            
+            % -------------------------------------------------------------
+            %    SELECTION
+            % -------------------------------------------------------------
+            
+            % --- Executes on button press in pushbutton_select.
+            function pushbutton_select_Callback(hObject, eventdata, handles)
+                % hObject    handle to pushbutton_select (see GCBO)
+                % eventdata  reserved - to be defined in a future version of MATLAB
+                % handles    structure with handles and user data (see GUIDATA)
+                set(handles.spatial_controls,'Visible','off');
+                % set(handles.pushbutton_set_clim,'Visible','off');
+                set(handles.select_controls,'Visible','on');
+                % set(findobj(handles.spatial_controls,'type','uicontrol'),'Enable','Off');
+                set(findobj(handles.select_controls,'type','uicontrol'),'Enable','On');
+                set(handles.pushbutton_select,'String','> Select <');
+                set(handles.pushbutton_spatial,'String','Spatial');
+                
+                
+                set(handles.pushbutton_spatial,'FontWeight','normal');
+                set(handles.pushbutton_select,'FontWeight','bold');
+                val = get(handles.popupmenu_eachfield,'Value');
+                handles.i = []; handles.j = [];
+                handles.rowlock=0; handles.columnlock=0;
+                handles.previousSel=[];
+                
+                update_gui(gcbo,[],guidata(gcbo));
+                guidata(handles.fig,handles);
+                
+                
+                
+                
+                % --- Executes on button press in pushbutton_selectpoints.
+                function pushbutton_selectpoints_Callback(hObject, eventdata, handles)
+                    
+                    
+                    set(handles.rowpushbutton,'Enable','off');
+                    set(handles.pushbutton_selectreg,'Enable','off');
+                    set(handles.colpushbutton,'Enable','off');
+                    set(handles.pushbutton_selectall,'Enable','off');
+                    
+                    
+                    
+                    set(handles.axes_main,'NextPlot','Add');
+                    limX = xlim;
+                    limY = ylim;
+                    leftcolX   = 1;
+                    bottomrowY = 1;
+                    
+                    
+                    while 1
+                        
+                        [x1,y1, buttonNumber] = ginput(1);
+                        
+                        % When the right button is pressed, stop the loop
+                        if (buttonNumber == 2) | (buttonNumber==3)
+                            break
+                        end
+                        col = fix (( x1 - limX(1,1) )/ handles.gridX+0.5  )+1;
+                        row = fix(( y1 - limY(1,1) )/ handles.gridY+0.5  )+1;
+                        
+                        % check for errors ----------------
+                        if col<1 | col>(fix((limX(1,2)-limX(1,1))/handles.gridX)+1) | row<1 | row...
+                                >(fix((limY(1,2)-limY(1,1))/handles.gridY)+1);
+                            guidata(handles.fig,handles);
+                            return
+                        end
+                        % ---------------------------------
+                        sizeI = size(handles.i,1);
+                        rightcolX = fix(( limX(1,2)-limX(1,1) )/  handles.gridX )+1;
+                        uprowY    = fix(( limY(1,2)-limY(1,1) )/  handles.gridY )+1;
+                        sizeJ = size(handles.j,1);
+                        numofcols = rightcolX - leftcolX + 1;
+                        numofrows = uprowY - bottomrowY + 1;
+                        
+                        handles.i(sizeI+1,1) = row;
+                        handles.j(sizeJ+1,1) = col;
+                        
+                        
+                        
+                        line(limX(1,1)+(col-1)*...
+                            handles.gridX,limY(1,1)+(row-1)*handles.gridY,'Marker','o','Color','k','MarkerSize',8);
+                        
+                    end
+                    disp('Points selected')
+                    disp([handles.i,handles.j])
+                    disp(handles.x(handles.i,handles.j))
+                    guidata(handles.fig,handles);
+                    % update_gui(handles.fig,[],handles);
+                    
+                    
+                    
+                    % --- Executes on button press in pushbutton_selectreg.
+                    function pushbutton_selectreg_Callback(hObject, eventdata, handles)
+                        % check if all selected is off
+                        set(handles.pushbutton_selectpoints,'Enable','off');
+                        set(handles.rowpushbutton,'Enable','off');
+                        set(handles.colpushbutton,'Enable','off');
+                        set(handles.pushbutton_selectall,'Enable','off');
+                        
+                        k       =   waitforbuttonpress;
+                        point1  =   get(gca,'CurrentPoint');    % button down detected
+                        % point1 is 2x3 matrix, first 2 elements are x,y
+                        finalRect = rbbox;                   % return figure units
+                        point2  =    get(gca,'CurrentPoint');    % button up detected
+                        point1  =    point1(1,1:2);              % extract x and y
+                        point2  =    point2(1,1:2);
+                        p1      =    min(point1,point2);             % calculate locations
+                        offset  =    abs(point1-point2);         % and dimensions
+                        
+                        
+                        limX = xlim; limY = ylim;                     % get Axis Limits
+                        % -------------- calculate columns & rows ------------------
+                        leftcolX = fix(( p1(1)-limX(1,1) )/ handles.gridX +1) + 1;
+                        rightcolX = fix(( p1(1)+offset(1)-limX(1,1) )/ handles.gridX )+1;
+                        bottomrowY =  fix(( p1(2)-limY(1,1) )/ handles.gridY+1 )+1;
+                        uprowY = fix(( p1(2) + offset(2) - limY(1,1) )/ handles.gridY)+1;
+                        
+                        
+                        % -------boundary check ----------------
+                        plotstateX=0;plotstateY=0;
+                        if leftcolX<1     leftcolX=1;
+                            plotstateY= 1;
+                        end;
+                        rightLimit=fix((limX(1,2)-limX(1,1))/handles.gridX)+1;
+                        if rightcolX>rightLimit  rightcolX=rightLimit; end;
+                        uprowLimit=fix((limY(1,2)-limY(1,1))/handles.gridY)+1;
+                        if bottomrowY<1  bottomrowY=1;
+                            plotstateX= 1;   % we need it to plot in right way
+                        end
+                        if uprowY>uprowLimit     uprowY=uprowLimit; end;
+                        
+                        % --------- selection checking ---------------
+                        sizeI = size(handles.i,1);
+                        sizeJ = size(handles.j,1);
+                        numofcols = rightcolX-leftcolX+1;
+                        numofrows = uprowY-bottomrowY+1;
+                        
+                        
+                        % -------------- errorchecking --------
+                        if ~isempty(handles.previousSel)
+                            a = handles.previousSel;
+                            if ((rightcolX-leftcolX) == a(2)-a(1) & a(2) == rightcolX & handles.rowlock~=1)
+                                handles.columnlock=1;
+                            elseif    ((uprowY-bottomrowY)==a(4)-a(3) & a(4)==uprowY & handles.columnlock~=1)
+                                handles.rowlock=1;
+                            else
+                                errordlg('Your Selection is Invalid...');
+                                return;
+                            end;
+                        end;
+                        
+                        if ismember([bottomrowY leftcolX],[handles.i handles.j],'rows') | ismember([bottomrowY rightcolX],[handles.i handles.j],'rows') | ...
+                                ismember([uprowY leftcolX],[handles.i handles.j],'rows') | ismember([uprowY rightcolX],[handles.i handles.j],'rows')
+                            errordlg('Your Selection is Invalid...');
+                            return;
+                        end
+                        
+                        
+                        
+                        
+                        % --------------------- Fill loop ----------------------------
+                        
+                        for i1 = bottomrowY:uprowY
+                            handles.i(sizeI+1:sizeI+numofcols,1)    =   i1;
+                            handles.j(sizeJ+1:sizeJ+numofcols,1)    =   leftcolX:rightcolX;
+                            sizeI   =   sizeI+numofcols;
+                            sizeJ   =   sizeJ+numofcols;
+                        end
+                        % ------------- plot ----------------------
+                        
+                        lx_box=limX(1,1)+(leftcolX-1)*handles.gridX*~plotstateY;
+                        rx_box=limX(1,1)+(rightcolX-1)*handles.gridX;
+                        uy_box=limY(1,1)+(uprowY-1)*handles.gridY;
+                        by_box=limY(1,1)+(bottomrowY-1)*handles.gridY*~plotstateX;
+                        
+                        
+                        x1 = [lx_box rx_box rx_box lx_box lx_box];
+                        y1 = [by_box by_box uy_box uy_box by_box];
+                        hold on
+                        handles.selectionbox = plot(x1,y1,'--b','LineWidth',1.5);
+                        hold off
+                        handles.previousSel=[leftcolX rightcolX bottomrowY uprowY];
+                        
+                        guidata(handles.fig,handles);
+                        
+                        
+                        % --- Executes on button press in pushbutton_selectall.
+                        function pushbutton_selectall_Callback(hObject, eventdata, handles)
+                            set(handles.pushbutton_selectpoints,'Enable','off');
+                            set(handles.rowpushbutton,'Enable','off');
+                            set(handles.colpushbutton,'Enable','off');
+                            set(handles.pushbutton_selectreg,'Enable','off');
+                            set(handles.pushbutton_selectall,'Enable','off');
+                            handles.Allselected=1;
+                            update_gui(hObject,[],guidata(hObject));
+                            handles.i=[]; handles.j=[]; handles.previousSel=[];
+                            limX=xlim; limY=ylim;
+                            x1 = [limX(1,1) limX(1,2) limX(1,2) limX(1,1) limX(1,1)];
+                            y1 = [limY(1,1) limY(1,1) limY(1,2) limY(1,2) limY(1,1)];
+                            hold on
+                            handles.selectionbox = plot(x1,y1,':b','LineWidth',4);
+                            hold off
+                            leftcolX    =   1;
+                            rightcolX   =   fix((limX(1,2)-limX(1,1))/handles.gridX)+1;
+                            bottomrowY  =   1;
+                            uprowY      =   fix((limY(1,2)-limY(1,1))/handles.gridY)+1;
+                            % uprowY      =   fix((limY(1,2)-limY(1,1))/handles.gridY+1)+1;
+                            numofcols=rightcolX-leftcolX+1;
+                            sizeI=size(handles.i,1);
+                            sizeJ=size(handles.j,1);
+                            for i1 = bottomrowY:uprowY
+                                handles.i(sizeI+1:sizeI+numofcols,1)=i1;
+                                handles.j(sizeJ+1:sizeJ+numofcols,1)=leftcolX:rightcolX;
+                                sizeI=sizeI+numofcols; sizeJ=sizeJ+numofcols;
+                            end
+                            guidata(handles.fig,handles);
+                            
+                            
+                            % --- Executes on button press in pushbutton_time.
+                            function pushbutton_time_Callback(hObject, eventdata, handles)
+                                if ~isempty(handles.i)
+                                    timeboxHandle = timebox(handles); % timebox includes both versions with if ... else
+                                    guidata(handles.fig,handles);
+                                else
+                                    errordlg('Select region of interest');
+                                end
+                                
+                                
+                                
+                                % --- Executes on button press in pushbutton_profile1.
+                                function pushbutton_profile1_Callback(hObject, eventdata, handles)
+                                    if isempty(handles.property) | isempty(handles.i)
+                                        errordlg('First, pick the quantity and region of interest !!!');
+                                    else
+                                        distribHandle = distrib(handles);  % call to spatialbox
+                                        handles.distribOn = 1;
+                                    end;
+                                    
+                                    guidata(handles.fig,handles);
+                                    
+                                    
+                                    % --- Executes on button press in pushbutton_reset.
+                                    function pushbutton_reset_Callback(hObject, eventdata, handles)
+                                        
+                                        handles.i = []; handles.j = [];
+                                        handles.rowlock=0; handles.columnlock=0;
+                                        handles.previousSel=[];
+                                        set(handles.pushbutton_selectpoints,'Enable','on');
+                                        set(handles.pushbutton_selectreg,'Enable','on');
+                                        set(handles.colpushbutton,'Enable','on');
+                                        set(handles.pushbutton_selectall,'Enable','on');
+                                        set(handles.rowpushbutton,'Enable','on');
+                                        guidata(handles.fig,handles);
+                                        update_gui(gcbo,[],guidata(gcbo));
+                                        
+                                        
+                                        % --- Executes during object creation, after setting all properties.
+                                        function figure_gradpiv_CreateFcn(hObject, eventdata, handles)
+                                            
+                                            load cil_logo
+                                            image(im,'Parent',findobj(hObject,'type','axes')); %handles.axes_main);
+                                            axis off
+                                            
+                                            
+                                            % --- Executes during object creation, after setting all properties.
+                                            function axes_main_CreateFcn(hObject, eventdata, handles)
+                                                
+                                                handles.axes_main = hObject;
+                                                guidata(hObject, handles);
+                                                
+                                                
+                                                
+                                                
+                                                function hh = quiverc(varargin)
+                                                    % Modified QUIVER() that uses Patches instead of lines and allows
+                                                    % to color arrows and have updated colorbar, according to the
+                                                    % correct color data mapping. Arrows are of the same type as in quiver plot.
+                                                    %
+                                                    %   Modified version: (c) Alex Liberzon
+                                                    %   $Revision: 1.02 $  $ Date: 05/10/2002 $
+                                                    %   See also: HELP QUIVER (skipped here)
+                                                    
+                                                    
+                                                    % Arrow head parameters
+                                                    alpha = 0.33; % Size of arrow head relative to the length of the vector
+                                                    beta = 0.33;  % Width of the base of the arrow head relative to the length
+                                                    autoscale = 1; % Autoscale if ~= 0 then scale by this.
+                                                    plotarrows = 1; % Plot arrows
+                                                    sym = '';
+                                                    
+                                                    filled = 0;
+                                                    ls = '-';
+                                                    ms = '';
+                                                    col = '';
+                                                    
+                                                    nin = nargin;
+                                                    % Parse the string inputs
+                                                    while isstr(varargin{nin}),
+                                                        vv = varargin{nin};
+                                                        if ~isempty(vv) & strcmp(lower(vv(1)),'f')
+                                                            filled = 1;
+                                                            nin = nin-1;
+                                                        else
+                                                            [l,c,m,msg] = colstyle(vv);
+                                                            if ~isempty(msg),
+                                                                error(sprintf('Unknown option "%s".',vv));
+                                                            end
+                                                            if ~isempty(l), ls = l; end
+                                                            if ~isempty(c), col = c; end
+                                                            if ~isempty(m), ms = m; plotarrows = 0; end
+                                                            if isequal(m,'.'), ms = ''; end % Don't plot '.'
+                                                            nin = nin-1;
+                                                        end
+                                                    end
+                                                    
+                                                    error(nargchk(2,6,nin));
+                                                    
+                                                    % Check numeric input arguments
+                                                    if nin<4, % quiver(u,v) or quiver(u,v,s)
+                                                        [msg,x,y,u,v] = xyzchk(varargin{1:2});
+                                                    else
+                                                        [msg,x,y,u,v] = xyzchk(varargin{1:4});
+                                                    end
+                                                    if ~isempty(msg), error(msg); end
+                                                    
+                                                    if nin==4 | nin==6, % quiver(u,v,z,s) or quiver(x,y,u,v,z,s)
+                                                        autoscale = varargin{nin-1};
+                                                        z = varargin{nin};
+                                                    end
+                                                    
+                                                    % Scalar expand u,v
+                                                    if prod(size(u))==1, u = u(ones(size(x))); end
+                                                    if prod(size(v))==1, v = v(ones(size(u))); end
+                                                    
+                                                    if autoscale,
+                                                        if min(size(x))==1
+                                                            n=sqrt(prod(size(x)));
+                                                            m=n;
+                                                        else
+                                                            [m,n]=size(x);
+                                                        end
+                                                        delx = diff([min(x(:)) max(x(:))])/n;
+                                                        dely = diff([min(y(:)) max(y(:))])/m;
+                                                        del = delx.^2 + dely.^2;
+                                                        if del>0
+                                                            len = sqrt((u.^2 + v.^2)/del);
+                                                            maxlen = max(len(:));
+                                                        else
+                                                            maxlen = 0;
+                                                        end
+                                                        
+                                                        if maxlen>0
+                                                            autoscale = autoscale*0.9 / maxlen;
+                                                        else
+                                                            autoscale = autoscale*0.9;
+                                                        end
+                                                        u = u*autoscale; v = v*autoscale;
+                                                    end
+                                                    
+                                                    
+                                                    ax = newplot;
+                                                    next = lower(get(ax,'NextPlot'));
+                                                    hold_state = ishold;
+                                                    
+                                                    % Make velocity vectors
+                                                    x = x(:).'; y = y(:).';
+                                                    u = u(:).'; v = v(:).';
+                                                    uu = [x;x+u;repmat(NaN,size(u))];
+                                                    vv = [y;y+v;repmat(NaN,size(u))];
+                                                    
+                                                    % Prepare color matrix
+                                                    z = [z(:)';z(:)';NaN*z(:)'];
+                                                    
+                                                    h1 = patch([uu(:),uu(:)],[vv(:),vv(:)], [z(:),z(:)],'Parent',ax,'EdgeColor','Flat','FaceColor','None');
+                                                    
+                                                    if plotarrows,
+                                                        % Make arrow heads and plot them
+                                                        hu = [x+u-alpha*(u+beta*(v+eps));x+u; ...
+                                                            x+u-alpha*(u-beta*(v+eps));repmat(NaN,size(u))];
+                                                        hv = [y+v-alpha*(v-beta*(u+eps));y+v; ...
+                                                            y+v-alpha*(v+beta*(u+eps));repmat(NaN,size(v))];
+                                                        hold on
+                                                        % Modify color matrix
+                                                        z = [z(1,:); z];
+                                                        h2 = patch([hu(:),hu(:)],[hv(:),hv(:)], [z(:),z(:)],'Parent',ax,'EdgeColor','Flat','FaceColor','None');
+                                                        
+                                                    else
+                                                        h2 = [];
+                                                    end
+                                                    
+                                                    if ~isempty(ms), % Plot marker on base
+                                                        hu = x; hv = y;
+                                                        hold on
+                                                        h3 = plot(hu(:),hv(:),[col ms]);
+                                                        if filled, set(h3,'markerfacecolor',get(h1,'color')); end
+                                                    else
+                                                        h3 = [];
+                                                    end
+                                                    
+                                                    if ~hold_state, hold off, view(2); set(ax,'NextPlot',next); end
+                                                    
+                                                    if nargout > 0, hh = [h1;h2;h3]; end
+                                                    
+                                                    
+                                                    % --- Executes on button press in rowpushbutton.
+                                                    function rowpushbutton_Callback(hObject, eventdata, handles)
+                                                        
+                                                        set(handles.pushbutton_selectpoints,'Enable','off');
+                                                        set(handles.pushbutton_selectreg,'Enable','off');
+                                                        set(handles.colpushbutton,'Enable','off');
+                                                        set(handles.pushbutton_selectall,'Enable','off');
+                                                        
+                                                        set(handles.axes_main,'NextPlot','Add');
+                                                        limX = xlim;
+                                                        limY = ylim;
+                                                        leftcolX   = 1;
+                                                        bottomrowY = 1;
+                                                        
+                                                        
+                                                        while 1
+                                                            
+                                                            [x1,y1, buttonNumber] = ginput(1);
+                                                            
+                                                            % When the right button is pressed, stop the loop
+                                                            if (buttonNumber == 2) | (buttonNumber==3)
+                                                                break;
+                                                            end;
+                                                            col = fix (( x1 - limX(1,1) )/ handles.gridX+0.5  )+1;
+                                                            row = fix(( y1 - limY(1,1) )/ handles.gridY+0.5  )+1;
+                                                            % check for errors ----------------
+                                                            if col<1 | col>(fix((limX(1,2)-limX(1,1))/handles.gridX)+1) | row<1 | row...
+                                                                    >(fix((limY(1,2)-limY(1,1))/handles.gridY)+1);
+                                                                guidata(handles.fig,handles);
+                                                                return;
+                                                            end;
+                                                            % ---------------------------------
+                                                            sizeI = size(handles.i,1);
+                                                            rightcolX = fix(( limX(1,2)-limX(1,1) )/  handles.gridX )+1;
+                                                            uprowY    = fix(( limY(1,2)-limY(1,1) )/  handles.gridY )+1;
+                                                            % uprowY    = fix(( limY(1,2)-limY(1,1) )/  handles.gridY +1)+1; % Alex,
+                                                            % 26.10
+                                                            sizeJ = size(handles.j,1);
+                                                            numofcols = rightcolX - leftcolX + 1;
+                                                            numofrows = uprowY - bottomrowY + 1;
+                                                            
+                                                            handles.i(sizeI+1:sizeI+numofrows,1) = 1:uprowY ;
+                                                            handles.j(sizeJ+1:sizeJ+numofrows,1) = col;
+                                                            row = 1:uprowY;
+                                                            topLeft(1)=uprowY; bottomRight(1)=1;
+                                                            
+                                                            line(limX(1,1)+(col-1)*...
+                                                                handles.gridX,limY(1,1)+(row-1)*handles.gridY,'Marker','o','Color','k','MarkerSize',8);
+                                                            
+                                                            
+                                                        end;
+                                                        guidata(handles.fig,handles);
+                                                        
+                                                        % --- Executes on button press in colpushbutton.
+                                                        function colpushbutton_Callback(hObject, eventdata, handles)
+                                                            % hObject    handle to colpushbutton (see GCBO)
+                                                            % eventdata  reserved - to be defined in a future version of MATLAB
+                                                            % handles    structure with handles and user data (see GUIDATA)
+                                                            set(handles.pushbutton_selectpoints,'Enable','off');
+                                                            set(handles.pushbutton_selectreg,'Enable','off');
+                                                            set(handles.rowpushbutton,'Enable','off');
+                                                            set(handles.pushbutton_selectall,'Enable','off');
+                                                            
+                                                            set(handles.axes_main,'NextPlot','Add');
+                                                            limX = xlim;
+                                                            limY = ylim;
+                                                            leftcolX   = 1;
+                                                            bottomrowY = 1;
+                                                            
+                                                            while 1
+                                                                
+                                                                [x1,y1, buttonNumber] = ginput(1);
+                                                                
+                                                                % When the right button is pressed, stop the loop
+                                                                if (buttonNumber == 2) | (buttonNumber==3)
+                                                                    break;
+                                                                end;
+                                                                col = fix (( x1 - limX(1,1) )/ handles.gridX+0.5  )+1;
+                                                                row = fix(( y1 - limY(1,1) )/ handles.gridY+0.5  )+1;
+                                                                % -------- find the corners of rectangle ----
+                                                                
+                                                                
+                                                                % check for errors ----------------
+                                                                if col<1 | col>(fix((limX(1,2)-limX(1,1))/handles.gridX)+1) | row<1 | row...
+                                                                        >(fix((limY(1,2)-limY(1,1))/handles.gridY)+1);
+                                                                    guidata(handles.fig,handles);
+                                                                    return;
+                                                                end;
+                                                                % ---------------------------------
+                                                                sizeI = size(handles.i,1);
+                                                                rightcolX = fix(( limX(1,2)-limX(1,1) )/  handles.gridX )+1;
+                                                                uprowY    = fix(( limY(1,2)-limY(1,1) )/  handles.gridY )+1;
+                                                                sizeJ = size(handles.j,1);
+                                                                numofcols = rightcolX - leftcolX + 1;
+                                                                numofrows = uprowY - bottomrowY + 1;
+                                                                %
+                                                                handles.i(sizeI+1:sizeI+numofcols,1) = row;
+                                                                handles.j(sizeJ+1:sizeJ+numofcols,1) = 1:rightcolX;
+                                                                col = 1:rightcolX;
+                                                                %
+                                                                line(limX(1,1)+(col-1)*...
+                                                                    handles.gridX,limY(1,1)+(row-1)*handles.gridY,'Marker','o','Color','k','MarkerSize',8);
+                                                            end;
+                                                            
+                                                            
+                                                            guidata(handles.fig,handles);
+                                                            
+                                                            
+                                                            % --- Executes during object creation, after setting all properties.
+                                                            function ed_max_CreateFcn(hObject, eventdata, handles)
+                                                                if ispc
+                                                                    set(hObject,'BackgroundColor','white');
+                                                                else
+                                                                    set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
+                                                                end
+                                                                
+                                                                
+                                                                
+                                                                % --------------------------------------------------------------------
+                                                                function export2figure_Callback(hObject, eventdata, handles)
+                                                                    handles.export_figure = figure;
+                                                                    copyobj(handles.axes_main,handles.export_figure);
+                                                                    
+                                                                    set(handles.export_figure,'Units','normalized');
+                                                                    set(get(handles.export_figure,'children'),'Units','normalized');
+                                                                    set(get(handles.export_figure,'children'),'Position',[0.13 0.11 0.775 0.815]);
+                                                                    set(get(handles.export_figure,'children'),'Box','on');
+                                                                    
+                                                                    if isfield(handles,'color_flag') & handles.colorbar_flag
+                                                                        colorbar;
+                                                                        % mcolorbar; % (get(handles.export_figure,'Children'));
+                                                                    end
+                                                                    guidata(handles.fig, handles);
+                                                                    
+                                                                    
+                                                                    % --- Executes on button press in pushbutton_stats.
+                                                                    function pushbutton_stats_Callback(hObject, eventdata, handles)
+                                                                        % hObject    handle to pushbutton_stats (see GCBO)
+                                                                        % eventdata  reserved - to be defined in a future version of MATLAB
+                                                                        % handles    structure with handles and user data (see GUIDATA)
+                                                                        
+                                                                        
+                                                                        % --------------------------------------------------------------------
+                                                                        function loadMat_Callback(hObject, eventdata, handles)
+                                                                            % hObject    handle to loadMat (see GCBO)
+                                                                            % eventdata  reserved - to be defined in a future version of MATLAB
+                                                                            % handles    structure with handles and user data (see GUIDATA)
+                                                                            
+                                                                            global orighandles;
+                                                                            if isfield(handles,'restoreorig')
+                                                                                handles = orighandles;
+                                                                            end
+                                                                            handles.restoreorig = 1;
+                                                                            handles.dt = 1;
+                                                                            handles.state3d = 0;
+                                                                            
+                                                                            
+                                                                            try
+                                                                                % Check the contents of the MAT file, if it's coordinates only or full file
+                                                                                curdir = cd;
+                                                                                % [coordMatfile,coordMatpath] = uigetfile('*.mat','Choose Coordinates or EXPORTED MAT file');
+                                                                                coordMatfile = uipickfiles('FilterSpec','*.mat');
+                                                                                w = who('-file',coordMatfile{1});
+                                                                                
+                                                                                
+                                                                                exportedMat = false;
+                                                                                if sum(cellfun(@sum,strfind(w,'xUnits'))) > 0, exportedMat = true; end
+                                                                                
+                                                                                
+                                                                                
+                                                                                switch exportedMat
+                                                                                    case true
+                                                                                        % load "ready" dataset, no need for double loading of
+                                                                                        % coordinates and velocities
+                                                                                        tmp = load(coordMatfile{1});
+                                                                                        handles.x = tmp.x;
+                                                                                        handles.y = tmp.y;
+                                                                                        handles.u = tmp.u;
+                                                                                        handles.v = tmp.v;
+                                                                                        handles.uf = tmp.uf;
+                                                                                        handles.vf = tmp.vf;
+                                                                                        handles.files = tmp.files;
+                                                                                        handles.path = tmp.path;
+                                                                                        handles.dx = tmp.dx;
+                                                                                        handles.dy = tmp.dy;
+                                                                                        handles.dudx = tmp.dudx;
+                                                                                        handles.dvdx = tmp.dvdx;
+                                                                                        handles.dudy = tmp.dudy;
+                                                                                        handles.dvdy = tmp.dvdy;
+                                                                                        handles.gridX = tmp.gridX;
+                                                                                        handles.gridY = tmp.gridY;
+                                                                                        handles.N = tmp.N;
+                                                                                        handles.xUnits = tmp.xUnits;
+                                                                                        handles.velUnits = tmp.velUnits;
+                                                                                        clear tmp
+                                                                                        
+                                                                                    case false
+                                                                                        load(coordMatfile{1});
+                                                                                        
+                                                                                        
+                                                                                        if exist('x','var')
+                                                                                            handles.x = x;
+                                                                                            handles.y = y; % max(y(:)) - y;
+                                                                                            clear x y
+                                                                                        elseif exist('X','var')
+                                                                                            handles.x = X;
+                                                                                            handles.y = Y; % max(Y(:)) - Y;
+                                                                                            clear X Y
+                                                                                        else
+                                                                                            errordlg('Coordinates file does not include x or X variables');
+                                                                                            set(handles.fig,'pointer','arrow');
+                                                                                        end
+                                                                                        coordMatfile = uipickfiles('Type',{'*.mat','Velocity MAT file'});
+                                                                                        load(coordMatfile{1});
+                                                                                        if exist('fu','var')
+                                                                                            handles.u = fu;
+                                                                                            handles.v = fv;
+                                                                                            clear fu fv
+                                                                                        elseif exist('U','var')
+                                                                                            handles.u = U;
+                                                                                            handles.v = V;
+                                                                                            clear U V
+                                                                                        elseif exist('u','var')
+                                                                                            handles.u = u;
+                                                                                            handles.v = v;
+                                                                                            clear u v
+                                                                                        else
+                                                                                            errordlg('Wrong velocity names');
+                                                                                        end
+                                                                                        
+                                                                                        
+                                                                                        [rows,cols,handles.N] = size(handles.u);
+                                                                                        
+                                                                                        handles.xUnits = 'pix';
+                                                                                        handles.velUnits = 'pix/s';
+                                                                                    otherwise
+                                                                                        ;
+                                                                                end
+                                                                            catch
+                                                                                
+                                                                                errordlg('Something wrong with MAT files'); % vector -> MAT
+                                                                                set(handles.fig,'pointer','arrow');
+                                                                                return
+                                                                            end
+                                                                            
+                                                                            try
+                                                                                set(handles.data_info,'String',coordMatfile); % july 27, Alex's Laptop, SVN assembla
+                                                                            catch
+                                                                                setfield(handles,'data_info',coordMatfile); % 18.12.10, dropbox
+                                                                            end
+                                                                            handles.current = 1;                      % current file beeing displayed
+                                                                            % Display first file number, total number of files
+                                                                            set(handles.edit_current,'String',handles.current);
+                                                                            set(handles.edit_numfields,'String',handles.N);
+                                                                            
+                                                                            % Initialize color, number of colors for contours
+                                                                            handles.numcolors = 10;                   % default number of colors
+                                                                            set(handles.edit_numcolors,'String', handles.numcolors);
+                                                                            
+                                                                            % Cat the mean values at the end
+                                                                            if ~exportedMat
+                                                                                handles.u(:,:,handles.N+1) = mean(handles.u(:,:,1:handles.N),3);
+                                                                                handles.v(:,:,handles.N+1) = mean(handles.v(:,:,1:handles.N),3);
+                                                                                if handles.state3d
+                                                                                    handles.w(:,:,handles.N+1) = mean(handles.w(:,:,1:handles.N),3);
+                                                                                    handles.wf = zeros(rows,cols,handles.N);
+                                                                                    for i = 1:handles.N
+                                                                                        handles.wf(:,:,i) = handles.w(:,:,i) - handles.w(:,:,handles.N+1);
+                                                                                    end
+                                                                                end
+                                                                                
+                                                                                % handles.dx = abs(handles.x(1,1) - handles.x(1,2));
+                                                                                % handles.dy = abs(handles.y(1,1) - handles.y(2,1));
+                                                                                % Bug, fixed at 16.06 after the email of Hai
+                                                                                handles.dx = handles.x(1,2) - handles.x(1,1);
+                                                                                handles.dy = handles.y(2,1) - handles.y(1,1);
+                                                                                
+                                                                                % Preallocate memory and calculate all the necessary quantities
+                                                                                % Fluctuations (last one is zero, we do not need it)
+                                                                                handles.uf = zeros(rows,cols,handles.N);
+                                                                                handles.vf = zeros(rows,cols,handles.N);
+                                                                                %
+                                                                                for i = 1:handles.N
+                                                                                    handles.vf(:,:,i) = handles.v(:,:,i) - handles.v(:,:,handles.N+1);
+                                                                                end
+                                                                                %
+                                                                                for i = 1:handles.N
+                                                                                    handles.uf(:,:,i) = handles.u(:,:,i) - handles.u(:,:,handles.N+1);
+                                                                                end
+                                                                                
+                                                                                % Derivatives
+                                                                                handles.dudx = zeros(rows,cols,handles.N+1);
+                                                                                handles.dudy = zeros(rows,cols,handles.N+1);
+                                                                                handles.dvdx = zeros(rows,cols,handles.N+1);
+                                                                                handles.dvdy = zeros(rows,cols,handles.N+1);
+                                                                                %
+                                                                                for i = 1:handles.N+1
+                                                                                    [handles.dudx(:,:,i),handles.dudy(:,:,i)] = lsgradient(handles.u(:,:,i),handles.dx, handles.dy);
+                                                                                    [handles.dvdx(:,:,i),handles.dvdy(:,:,i)] = lsgradient(handles.v(:,:,i),handles.dx, handles.dy);
+                                                                                end
+                                                                                
+                                                                                % Possible future development, eliminating strong gradients
+                                                                                % on the borders
+                                                                                % handles.dudx(1:2,:,:)       = NaN;
+                                                                                % handles.dudx(end-1:end,:,:) = NaN;
+                                                                                % handles.dudx(:,1:2,:)       = NaN;
+                                                                                % handles.dudx(:,end-1:end,:) = NaN;
+                                                                                
+                                                                            end
+                                                                            
+                                                                            
+                                                                            %
+                                                                            % More defaults
+                                                                            handles.arrow_scale = 1;                % default scale
+                                                                            set(handles.edit_arrow_size,'String',handles.arrow_scale);
+                                                                            
+                                                                            % Default situation, instantaneous, not Ensemble, not fluctuations
+                                                                            set(handles.checkbox_ensemble,'Value',0);
+                                                                            set(handles.checkbox_fluct,'Value',0);
+                                                                            
+                                                                            % No colors, no labels
+                                                                            handles.color = 0;                % display colored / black figure
+                                                                            handles.alltodisp = 0;            % default all_to display is unset
+                                                                            handles.allfields = 0;
+                                                                            handles.labelit = 0;              % label for contour
+                                                                            handles.colorbar_flag = 0;
+                                                                            handles.current_index = handles.current;
+                                                                            handles.distribOn=0;
+                                                                            handles.rowlock=0; handles.columnlock=0;
+                                                                            handles.previousSel=[];
+                                                                            
+                                                                            % These are future values, for the TimeBox
+                                                                            handles.i=[];
+                                                                            handles.j=[];
+                                                                            handles.PointsH=[];
+                                                                            handles.Allselected=0;
+                                                                            
+                                                                            % handles.dx = handles.x(1,2) - handles.x(1,1);
+                                                                            % handles.dy = handles.y(2,1) - handles.y(1,1);
+                                                                            
+                                                                            % abs() is added on Dec.13,2004. by Alex on IHW_Liberzon computer
+                                                                            %
+                                                                            handles.gridX = abs(handles.x(1,2) - handles.x(1,1));
+                                                                            handles.gridY = abs(handles.y(1,1) - handles.y(2,1));
+                                                                            
+                                                                            % Show some and hide some controls
+                                                                            set(handles.popupmenu_quantity,'Visible','on');
+                                                                            set(handles.popupmenu_quantity,'Value',1);
+                                                                            set(handles.popupmenu_contour_type,'Visible','on');
+                                                                            set(handles.popupmenu_contour_type,'Value',1);
+                                                                            set(handles.popupmenu_eachfield,'Visible','on');
+                                                                            set(handles.popupmenu_eachfield,'Value',1);
+                                                                            
+                                                                            % Some only part of them in Enable mode
+                                                                            set(handles.checkbox_arrow,'Enable','On');
+                                                                            set(handles.edit_arrow_size,'Enable','On');
+                                                                            set(handles.checkbox_fluct,'Enable','On');
+                                                                            set(handles.checkbox_ensemble,'Enable','On');
+                                                                            set(handles.popupmenu_quantity,'Enable','On');
+                                                                            set(handles.pushbutton_previous,'Enable','On');
+                                                                            set(handles.pushbutton_next,'Enable','On');
+                                                                            set(handles.edit_current,'Enable','On');
+                                                                            set(handles.pushbutton_animate,'Enable','On');
+                                                                            set(handles.pushbutton_save_movie,'Enable','on');
+                                                                            % set(handles.pushbutton_stats,'Enable','on');
+                                                                            
+                                                                            
+                                                                            % Properties
+                                                                            set(handles.popupmenu_quantity,'String',handles.inst_list);
+                                                                            handles.property = [];
+                                                                            
+                                                                            % ---------------- store all handles of spatial controls ------------------
+                                                                            % handles.spatial_controls=[handles.checkbox_ensemble,handles.checkbox_fluct,handles.checkbox_arrow,handles.checkbox_arrow_color,...
+                                                                            %         handles.checkbox_label,handles.checkbox_colorbar,handles.edit_arrow_size,handles.edit_numcolors,...
+                                                                            %         handles.edit_current,handles.edit_numfields,...
+                                                                            %         handles.text_contour_quantity, handles.text_contourtype, handles.text_numberofcolors, handles.text7,handles.text2,...
+                                                                            %         handles.text_arrow_size, handles.pushbutton_previous, handles.pushbutton_next, ...
+                                                                            %         handles.pushbutton_animate, handles.pushbutton_save_movie, ...
+                                                                            %         handles.frame_controls,handles.frame8,handles.frame_contour_quantity,handles.frame_contour_type,handles.frame7,...
+                                                                            %         handles.frame_arrow, handles.text5, handles.popupmenu_quantity,handles.popupmenu_contour_type,...
+                                                                            %         handles.popupmenu_eachfield];% ,handles.pushbutton_stats];
+                                                                            
+                                                                            % -------------- store all handles of select controls ----------------
+                                                                            % handles.select_controls=[handles.pushbutton_selectpoints,handles.pushbutton_selectreg,handles.pushbutton_selectall,...
+                                                                            %          handles.pushbutton_profile1,handles.pushbutton_time,...
+                                                                            %          handles.pushbutton_reset, handles.rowpushbutton, handles.colpushbutton];
+                                                                            
+                                                                            handles.arrow_ctrls=[handles.edit_arrow_size,handles.checkbox_arrow,handles.checkbox_arrow_color];
+                                                                            % handles.stat_controls=[handles.ed_mean,handles.ed_std,handles.ed_min,handles.ed_max,handles.ed_text,...
+                                                                            %         handles.ed_pushsavestl,handles.ed_frame,handles.ed_pushclose,handles.ed_textmean,...
+                                                                            %         handles.ed_textstd,handles.ed_textmax,handles.ed_textmin];
+                                                                            
+                                                                            
+                                                                            set(handles.pushbutton_spatial,'Enable','on');
+                                                                            set(handles.pushbutton_select,'Enable','on');
+                                                                            
+                                                                            set(handles.fig,'pointer','arrow');
+                                                                            
+                                                                            % added on 10.04.06 for R12SP3 version
+                                                                            handles.axpos = get(handles.axes_main,'Position');
+                                                                            
+                                                                            % Update all handles structure
+                                                                            guidata(handles.fig,handles);
+                                                                            
+                                                                            % Make default plot
+                                                                            update_gui(handles.fig,[],handles);
+                                                                            return
+                                                                            % --------------------------------------------------------------------
+                                                                            
+                                                                            
+                                                                            % --------------------------------------------------------------------
+                                                                            function loadTXT_Callback(hObject, eventdata, handles)
+                                                                                % hObject    handle to loadTXT (see GCBO)
+                                                                                % eventdata  reserved - to be defined in a future version of MATLAB
+                                                                                % handles    structure with handles and user data (see GUIDATA)
+                                                                                
+                                                                                global orighandles;
+                                                                                if isfield(handles,'restoreorig')
+                                                                                    handles = orighandles;
+                                                                                end
+                                                                                
+                                                                                handles.restoreorig = 1;
+                                                                                handles.state3d = 0;
+                                                                                handles.dt  = 1;
+                                                                                
+                                                                                
+                                                                                try
+                                                                                    % [gui_files,gui_path] = uigetfile('*.txt','Select the location and the type of the TXT file');
+                                                                                    handles.files = uipickfiles; % April 2, 2010, AL
+                                                                                    
+                                                                                    
+                                                                                    handles.N = length(handles.files); % number of files selected
+                                                                                    if  handles.N > 0
+                                                                                        [handles.path,junk,junk] = fileparts(handles.files{1});
+                                                                                        set(handles.fig,'pointer','watch');
+                                                                                    else
+                                                                                        return
+                                                                                    end
+                                                                                    
+                                                                                    %%%%%%%%%%%%%%%%
+                                                                                    
+                                                                                    
+                                                                                    d = load(handles.files{1});
+                                                                                    
+                                                                                    
+                                                                                    x = d(:,1);
+                                                                                    x = x(x~=0);
+                                                                                    unX = unique(x);
+                                                                                    
+                                                                                    minX = min(unX);
+                                                                                    maxX = max(unX);
+                                                                                    dX = ceil((maxX-minX)/(length(unX)-1));
+                                                                                    
+                                                                                    y = d(:,2);
+                                                                                    y = y(y~=0);
+                                                                                    unY = unique(y);
+                                                                                    
+                                                                                    minY = min(unY);
+                                                                                    maxY = max(unY);
+                                                                                    dY = ceil((maxY-minY)/(length(unY)-1));
+                                                                                    
+                                                                                    [handles.x,handles.y] = meshgrid(minX:dX:maxX,minY:dY:maxY);
+                                                                                    [rows,cols] = size(handles.x);
+                                                                                    
+                                                                                    [handles.u,handles.v] = deal(zeros(rows,cols,handles.N+1)); % 11.04.04, Alex
+                                                                                    
+                                                                                    hwaitbar = waitbar(0,'Please wait...');
+                                                                                    
+                                                                                    
+                                                                                    
+                                                                                    tmp = d;
+                                                                                    tmp(tmp(:,1) == 0) = [];
+                                                                                    tmp(tmp(:,2) == 0) = [];
+                                                                                    % y = tmp(:,2);
+                                                                                    %  x = tmp(:,1);
+                                                                                    for j = 1:length(tmp(:,1))
+                                                                                        [m(j),n(j)] = find(handles.x == tmp(j,1) & handles.y == tmp(j,2));
+                                                                                    end
+                                                                                    
+                                                                                    
+                                                                                    for i = 1:handles.N
+                                                                                        waitbar(i/handles.N,hwaitbar)
+                                                                                        % x = d(:,1,i);
+                                                                                        % tmp = d(x~=0,:,i);
+                                                                                        % presumably cleans bug values with zero in x and y - not clear
+                                                                                        % yet, 23.3.11, Alex
+                                                                                        
+                                                                                        tmp = load(handles.files{i});
+                                                                                        tmp(tmp(:,1) == 0) = [];
+                                                                                        tmp(tmp(:,2) == 0) = [];
+                                                                                        
+                                                                                        for j = 1:length(tmp(:,1))
+                                                                                            handles.u(m(j),n(j),i) = tmp(j,3);
+                                                                                            handles.v(m(j),n(j),i) = tmp(j,4);
+                                                                                        end
+                                                                                    end
+                                                                                    
+                                                                                    close(hwaitbar)
+                                                                                    handles.xUnits = 'pix';
+                                                                                    handles.velUnits = 'pix/dt';
+                                                                                    
+                                                                                    clear d tmp x y
+                                                                                    
+                                                                                catch
+                                                                                    errordlg('Something wrong with TXT files');
+                                                                                    set(handles.fig,'pointer','arrow');
+                                                                                    return
+                                                                                end
+                                                                                
+                                                                                handles.current = 1;                      % current file beeing displayed
+                                                                                % Display first file number, total number of files
+                                                                                set(handles.edit_current,'String',handles.current);
+                                                                                set(handles.edit_numfields,'String',handles.N);
+                                                                                
+                                                                                % Initialize color, number of colors for contours
+                                                                                handles.numcolors = 10;                   % default number of colors
+                                                                                set(handles.edit_numcolors,'String', handles.numcolors);
+                                                                                
+                                                                                % Cat the mean values at the end
+                                                                                handles.u(:,:,handles.N+1) = mean(handles.u(:,:,1:handles.N),3);
+                                                                                handles.v(:,:,handles.N+1) = mean(handles.v(:,:,1:handles.N),3);
+                                                                                if handles.state3d
+                                                                                    handles.w(:,:,handles.N+1) = mean(handles.w(:,:,1:handles.N),3);
+                                                                                    handles.wf = zeros(rows,cols,handles.N);
+                                                                                    for i = 1:handles.N
+                                                                                        handles.wf(:,:,i) = handles.w(:,:,i) - handles.w(:,:,handles.N+1);
+                                                                                    end
+                                                                                end
+                                                                                
+                                                                                % handles.dx = abs(handles.x(1,1) - handles.x(1,2));
+                                                                                % handles.dy = abs(handles.y(1,1) - handles.y(2,1));
+                                                                                % Bug, fixed at 16.06 after the email of Hai
+                                                                                handles.dx = handles.x(1,2) - handles.x(1,1);
+                                                                                handles.dy = handles.y(2,1) - handles.y(1,1);
+                                                                                
+                                                                                % Preallocate memory and calculate all the necessary quantities
+                                                                                % Fluctuations (last one is zero, we do not need it)
+                                                                                handles.uf = zeros(rows,cols,handles.N);
+                                                                                handles.vf = zeros(rows,cols,handles.N);
+                                                                                %
+                                                                                for i = 1:handles.N
+                                                                                    handles.vf(:,:,i) = handles.v(:,:,i) - handles.v(:,:,handles.N+1);
+                                                                                end
+                                                                                %
+                                                                                for i = 1:handles.N
+                                                                                    handles.uf(:,:,i) = handles.u(:,:,i) - handles.u(:,:,handles.N+1);
+                                                                                end
+                                                                                
+                                                                                % Derivatives
+                                                                                handles.dudx = zeros(rows,cols,handles.N+1);
+                                                                                handles.dudy = zeros(rows,cols,handles.N+1);
+                                                                                handles.dvdx = zeros(rows,cols,handles.N+1);
+                                                                                handles.dvdy = zeros(rows,cols,handles.N+1);
+                                                                                %
+                                                                                for i = 1:handles.N+1
+                                                                                    [handles.dudx(:,:,i),handles.dudy(:,:,i)] = lsgradient(handles.u(:,:,i),handles.dx, handles.dy);
+                                                                                    [handles.dvdx(:,:,i),handles.dvdy(:,:,i)] = lsgradient(handles.v(:,:,i),handles.dx, handles.dy);
+                                                                                end
+                                                                                
+                                                                                % Possible future development, eliminating strong gradients
+                                                                                % on the borders
+                                                                                % handles.dudx(1:2,:,:)       = NaN;
+                                                                                % handles.dudx(end-1:end,:,:) = NaN;
+                                                                                % handles.dudx(:,1:2,:)       = NaN;
+                                                                                % handles.dudx(:,end-1:end,:) = NaN;
+                                                                                
+                                                                                %
+                                                                                % More defaults
+                                                                                handles.arrow_scale = 1;                % default scale
+                                                                                set(handles.edit_arrow_size,'String',handles.arrow_scale);
+                                                                                
+                                                                                % Default situation, instantaneous, not Ensemble, not fluctuations
+                                                                                set(handles.checkbox_ensemble,'Value',0);
+                                                                                set(handles.checkbox_fluct,'Value',0);
+                                                                                
+                                                                                % No colors, no labels
+                                                                                handles.color = 0;                % display colored / black figure
+                                                                                handles.alltodisp = 0;            % default all_to display is unset
+                                                                                handles.allfields = 0;
+                                                                                handles.labelit = 0;              % label for contour
+                                                                                handles.colorbar_flag = 0;
+                                                                                handles.current_index = handles.current;
+                                                                                handles.distribOn=0;
+                                                                                handles.rowlock=0; handles.columnlock=0;
+                                                                                handles.previousSel=[];
+                                                                                
+                                                                                % These are future values, for the TimeBox
+                                                                                handles.i=[];
+                                                                                handles.j=[];
+                                                                                handles.PointsH=[];
+                                                                                handles.Allselected=0;
+                                                                                
+                                                                                % handles.dx = handles.x(1,2) - handles.x(1,1);
+                                                                                % handles.dy = handles.y(2,1) - handles.y(1,1);
+                                                                                
+                                                                                % abs() is added on Dec.13,2004. by Alex on IHW_Liberzon computer
+                                                                                %
+                                                                                handles.gridX = abs(handles.x(1,2) - handles.x(1,1));
+                                                                                handles.gridY = abs(handles.y(1,1) - handles.y(2,1));
+                                                                                
+                                                                                % Show some and hide some controls
+                                                                                set(handles.popupmenu_quantity,'Visible','on');
+                                                                                set(handles.popupmenu_quantity,'Value',1);
+                                                                                set(handles.popupmenu_contour_type,'Visible','on');
+                                                                                set(handles.popupmenu_contour_type,'Value',1);
+                                                                                set(handles.popupmenu_eachfield,'Visible','on');
+                                                                                set(handles.popupmenu_eachfield,'Value',1);
+                                                                                
+                                                                                % Some only part of them in Enable mode
+                                                                                set(handles.checkbox_arrow,'Enable','On');
+                                                                                set(handles.edit_arrow_size,'Enable','On');
+                                                                                set(handles.checkbox_fluct,'Enable','On');
+                                                                                set(handles.checkbox_ensemble,'Enable','On');
+                                                                                set(handles.popupmenu_quantity,'Enable','On');
+                                                                                set(handles.pushbutton_previous,'Enable','On');
+                                                                                set(handles.pushbutton_next,'Enable','On');
+                                                                                set(handles.edit_current,'Enable','On');
+                                                                                set(handles.pushbutton_animate,'Enable','On');
+                                                                                set(handles.pushbutton_save_movie,'Enable','on');
+                                                                                % set(handles.pushbutton_stats,'Enable','on');
+                                                                                
+                                                                                
+                                                                                % Properties
+                                                                                set(handles.popupmenu_quantity,'String',handles.inst_list);
+                                                                                handles.property = [];
+                                                                                
+                                                                                handles.arrow_ctrls=[handles.edit_arrow_size,handles.checkbox_arrow,handles.checkbox_arrow_color];
+                                                                                
+                                                                                set(handles.pushbutton_spatial,'Enable','on');
+                                                                                set(handles.pushbutton_select,'Enable','on');
+                                                                                
+                                                                                set(handles.fig,'pointer','arrow');
+                                                                                
+                                                                                % added on 10.04.06 for R12SP3 version
+                                                                                handles.axpos = get(handles.axes_main,'Position');
+                                                                                
+                                                                                % Update all handles structure
+                                                                                guidata(handles.fig,handles);
+                                                                                
+                                                                                % Make default plot
+                                                                                update_gui(handles.fig,[],handles);
+                                                                                return
+                                                                                
+                                                                                % ---------------------------------------------------------------------
+                                                                                function [filenames] = ReadTXTDir(dirname,data)
+                                                                                    if nargin < 2
+                                                                                        data = 'txt';
+                                                                                    end
+                                                                                    
+                                                                                    switch data
+                                                                                        case{'_noflt.txt'} % a)
+                                                                                            direc = dir([dirname,filesep,'*_noflt.txt']);
+                                                                                        case{'_flt.txt'} %b)
+                                                                                            direc = dir([dirname,filesep,'*_flt.txt']);
+                                                                                        case{'txt'} % c)
+                                                                                            direc = dir([dirname,filesep,'*.txt']);
+                                                                                            tmp = struct('name',[]);
+                                                                                            k = 0;
+                                                                                            for i=1:length(direc)
+                                                                                                if length(findstr(direc(i).name,'flt')) < 1
+                                                                                                    k = k + 1;
+                                                                                                    tmp(k).name = direc(i).name;
+                                                                                                end
+                                                                                            end
+                                                                                            direc = tmp;
+                                                                                    end
+                                                                                    
+                                                                                    if ~isempty(direc(1).name) && ~isempty(str2num(direc(1).name(1:length(direc(1).name)-4)))
+                                                                                        for i = 1:length(direc)
+                                                                                            n(i) = str2num(direc(i).name(1:length(direc(i).name)-4));
+                                                                                        end
+                                                                                        [junk,j] = sort(n);
+                                                                                        direc = direc(j);
+                                                                                    end
+                                                                                    
+                                                                                    filenames={};
+                                                                                    [filenames{1:length(direc),1}] = deal(direc.name);
+                                                                                    % filenames = sortrows(filenames);
+                                                                                    return
+                                                                                    
+                                                                                    
+                                                                                    % --------------------------------------------------------------------
+                                                                                    function Data_Callback(hObject, eventdata, handles)
+                                                                                        % hObject    handle to Data (see GCBO)
+                                                                                        % eventdata  reserved - to be defined in a future version of MATLAB
+                                                                                        % handles    structure with handles and user data (see GUIDATA)
+                                                                                        
+                                                                                        
+                                                                                        % --------------------------------------------------------------------
+                                                                                        function Filter_Callback(hObject, eventdata, handles)
+                                                                                            % hObject    handle to Filter (see GCBO)
+                                                                                            % eventdata  reserved - to be defined in a future version of MATLAB
+                                                                                            % handles    structure with handles and user data (see GUIDATA)
+                                                                                            
+                                                                                            
+                                                                                            % --------------------------------------------------------------------
+                                                                                            function Global_Callback(hObject, eventdata, handles)
+                                                                                                % hObject    handle to Global (see GCBO)
+                                                                                                % eventdata  reserved - to be defined in a future version of MATLAB
+                                                                                                % handles    structure with handles and user data (see GUIDATA)
+                                                                                                
+                                                                                                
+                                                                                                %%%%%%%%%%%%%%%%%%%
+                                                                                                % Reshape U and V matrices in two-dimensional grid and produce
+                                                                                                % velocity vector in U + i*V form (real and imaginary parts):
+                                                                                                
+                                                                                                
+                                                                                                
+                                                                                                [rows,cols] = size(handles.u(:,:,1));
+                                                                                                %     % Remove outlayers - GLOBAL FILTERING
+                                                                                                for i = 1:handles.N
+                                                                                                    vector = sqrt(handles.u(:,:,i).^2 + handles.v(:,:,i).^2);
+                                                                                                    % index = find(vector > (median(vector) + 6*std(vector)));
+                                                                                                    [vector,index,outliers] = deleteoutliers(vector(:),0.05);
+                                                                                                    [k,m] = ind2sub([rows,cols],index);
+                                                                                                    handles.u(k,m,i) = 0;
+                                                                                                    handles.v(k,m,i) = 0;
+                                                                                                end
+                                                                                                
+                                                                                                % Update data
+                                                                                                handles.u(:,:,handles.N+1) = mean(handles.u(:,:,1:handles.N),3);
+                                                                                                handles.v(:,:,handles.N+1) = mean(handles.v(:,:,1:handles.N),3);
+                                                                                                if handles.state3d
+                                                                                                    handles.w(:,:,handles.N+1) = mean(handles.w(:,:,1:handles.N),3);
+                                                                                                    handles.wf = zeros(rows,cols,handles.N);
+                                                                                                    for i = 1:handles.N
+                                                                                                        handles.wf(:,:,i) = handles.w(:,:,i) - handles.w(:,:,handles.N+1);
+                                                                                                    end
+                                                                                                end
+                                                                                                
+                                                                                                handles.dx = handles.x(1,2) - handles.x(1,1);
+                                                                                                handles.dy = handles.y(2,1) - handles.y(1,1);
+                                                                                                
+                                                                                                %
+                                                                                                for i = 1:handles.N
+                                                                                                    handles.vf(:,:,i) = handles.v(:,:,i) - handles.v(:,:,handles.N+1);
+                                                                                                    handles.uf(:,:,i) = handles.u(:,:,i) - handles.u(:,:,handles.N+1);
+                                                                                                end
+                                                                                                %
+                                                                                                for i = 1:handles.N+1
+                                                                                                    [handles.dudx(:,:,i),handles.dudy(:,:,i)] = lsgradient(handles.u(:,:,i),handles.dx, handles.dy);
+                                                                                                    [handles.dvdx(:,:,i),handles.dvdy(:,:,i)] = lsgradient(handles.v(:,:,i),handles.dx, handles.dy);
+                                                                                                end
+                                                                                                
+                                                                                                update_gui(handles.fig,[],handles);
+                                                                                                guidata(handles.fig,handles);
+                                                                                                
+                                                                                                
+                                                                                                update_gui(handles.fig,[],handles);
+                                                                                                guidata(handles.fig,handles)
+                                                                                                
+                                                                                                % --------------------------------------------------------------------
+                                                                                                function Median_Callback(hObject, eventdata, handles)
+                                                                                                    % hObject    handle to Median (see GCBO)
+                                                                                                    % eventdata  reserved - to be defined in a future version of MATLAB
+                                                                                                    % handles    structure with handles and user data (see GUIDATA)
+                                                                                                    %
+                                                                                                    % Adaptive Local Median filtering
+                                                                                                    
+                                                                                                    kernel = [-1 -1 -1; -1 8 -1; -1 -1 -1];
+                                                                                                    [rows,cols] = size(handles.u(:,:,1));
+                                                                                                    
+                                                                                                    for i = 1:handles.N
+                                                                                                        tmpv = abs(conv2(handles.v(:,:,i),kernel,'same'));
+                                                                                                        tmpu = abs(conv2(handles.u(:,:,i),kernel,'same'));
+                                                                                                        
+                                                                                                        ind = tmpv~=0 & tmpu~=0;
+                                                                                                        lmtv = mean(tmpv(ind)) + 3*std(tmpv(ind));
+                                                                                                        lmtu = mean(tmpu(ind)) + 3*std(tmpu(ind));
+                                                                                                        
+                                                                                                        out = find(tmpu > lmtu  & tmpv > lmtv);
+                                                                                                        
+                                                                                                        [k,m] = ind2sub([rows,cols],out);
+                                                                                                        handles.u(k,m,i) = 0;
+                                                                                                        handles.v(k,m,i) = 0;
+                                                                                                    end
+                                                                                                    
+                                                                                                    % Update data
+                                                                                                    
+                                                                                                    handles.u(:,:,handles.N+1) = mean(handles.u(:,:,1:handles.N),3);
+                                                                                                    handles.v(:,:,handles.N+1) = mean(handles.v(:,:,1:handles.N),3);
+                                                                                                    if handles.state3d
+                                                                                                        handles.w(:,:,handles.N+1) = mean(handles.w(:,:,1:handles.N),3);
+                                                                                                        handles.wf = zeros(rows,cols,handles.N);
+                                                                                                        for i = 1:handles.N
+                                                                                                            handles.wf(:,:,i) = handles.w(:,:,i) - handles.w(:,:,handles.N+1);
+                                                                                                        end
+                                                                                                    end
+                                                                                                    
+                                                                                                    handles.dx = handles.x(1,2) - handles.x(1,1);
+                                                                                                    handles.dy = handles.y(2,1) - handles.y(1,1);
+                                                                                                    
+                                                                                                    %
+                                                                                                    for i = 1:handles.N
+                                                                                                        handles.vf(:,:,i) = handles.v(:,:,i) - handles.v(:,:,handles.N+1);
+                                                                                                        handles.uf(:,:,i) = handles.u(:,:,i) - handles.u(:,:,handles.N+1);
+                                                                                                    end
+                                                                                                    %
+                                                                                                    for i = 1:handles.N+1
+                                                                                                        [handles.dudx(:,:,i),handles.dudy(:,:,i)] = lsgradient(handles.u(:,:,i),handles.dx, handles.dy);
+                                                                                                        [handles.dvdx(:,:,i),handles.dvdy(:,:,i)] = lsgradient(handles.v(:,:,i),handles.dx, handles.dy);
+                                                                                                    end
+                                                                                                    
+                                                                                                    update_gui(handles.fig,[],handles);
+                                                                                                    guidata(handles.fig,handles);
+                                                                                                    
+                                                                                                    
+                                                                                                    update_gui(handles.fig,[],handles);
+                                                                                                    guidata(handles.fig,handles);
+                                                                                                    
+                                                                                                    
+                                                                                                    % --------------------------------------------------------------------
+                                                                                                    function Crop_Callback(hObject, eventdata, handles)
+                                                                                                        % hObject    handle to Crop (see GCBO)
+                                                                                                        % eventdata  reserved - to be defined in a future version of MATLAB
+                                                                                                        % handles    structure with handles and user data (see GUIDATA)
+                                                                                                        
+                                                                                                        
+                                                                                                        % axes(handles.axes_main);
+                                                                                                        handles.rect = getrect(handles.fig);
+                                                                                                        rectangle('position',handles.rect,'Curvature',[0 0],'Edgecolor','blue','Linestyle',':');
+                                                                                                        % handles.xind = find(handles.x(1,:) > handles.rect(1) & handles.x(1,:) < (handles.rect(1) + handles.rect(3)));
+                                                                                                        % handles.yind = find(handles.y(:,1) > handles.rect(2) & handles.y(:,1) < (handles.rect(2) + handles.rect(4)));
+                                                                                                        handles.xind = find(handles.x(1,:) < handles.rect(1) | handles.x(1,:) > (handles.rect(1) + handles.rect(3)));
+                                                                                                        handles.yind = find(handles.y(:,1) < handles.rect(2) | handles.y(:,1) > (handles.rect(2) + handles.rect(4)));
+                                                                                                        
+                                                                                                        % w = whos('handles');
+                                                                                                        % if w.bytes > 60000000
+                                                                                                        %
+                                                                                                        %     errordlg('Matlab does not know how to release memory, call Mathworks');
+                                                                                                        %
+                                                                                                        %
+                                                                                                        % else
+                                                                                                        %     handles.x = handles.x(handles.yind,handles.xind);
+                                                                                                        %     handles.y = handles.y(handles.yind,handles.xind);
+                                                                                                        %     handles.u = handles.u(handles.yind,handles.xind,:);
+                                                                                                        %     handles.v = handles.v(handles.yind,handles.xind,:);
+                                                                                                        %     handles.dudx = handles.dudx(handles.yind,handles.xind,:);
+                                                                                                        %     handles.dudy = handles.dudy(handles.yind,handles.xind,:);
+                                                                                                        %     handles.dvdx = handles.dvdx(handles.yind,handles.xind,:);
+                                                                                                        %     handles.dvdy = handles.dvdy(handles.yind,handles.xind,:);
+                                                                                                        %
+                                                                                                        %     handles.uf = handles.uf(handles.yind,handles.xind,:);
+                                                                                                        %     handles.vf = handles.vf(handles.yind,handles.xind,:);
+                                                                                                        %
+                                                                                                        % end
+                                                                                                        
+                                                                                                        
+                                                                                                        try
+                                                                                                            handles.x(handles.yind,:) = [];
+                                                                                                            handles.y(handles.yind,:)= [];
+                                                                                                            handles.u(handles.yind,:,:)= [];
+                                                                                                            handles.v(handles.yind,:,:)= [];
+                                                                                                            handles.dudx(handles.yind,:,:)= [];
+                                                                                                            handles.dudy(handles.yind,:,:)= [];
+                                                                                                            handles.dvdx(handles.yind,:,:)= [];
+                                                                                                            handles.dvdy(handles.yind,:,:)= [];
+                                                                                                            
+                                                                                                            handles.uf(handles.yind,:,:)= [];
+                                                                                                            handles.vf(handles.yind,:,:)= [];
+                                                                                                            
+                                                                                                            
+                                                                                                            handles.x(:,handles.xind) = [];
+                                                                                                            handles.y(:,handles.xind)= [];
+                                                                                                            handles.u(:,handles.xind,:)= [];
+                                                                                                            handles.v(:,handles.xind,:)= [];
+                                                                                                            handles.dudx(:,handles.xind,:)= [];
+                                                                                                            handles.dudy(:,handles.xind,:)= [];
+                                                                                                            handles.dvdx(:,handles.xind,:)= [];
+                                                                                                            handles.dvdy(:,handles.xind,:)= [];
+                                                                                                            
+                                                                                                            handles.uf(:,handles.xind,:)= [];
+                                                                                                            handles.vf(:,handles.xind,:)= [];
+                                                                                                            
+                                                                                                            if ~isempty(handles.property)
+                                                                                                                handles.property(handles.yind,:,:) = [];
+                                                                                                                handles.property(:,handles.xind,:) = [];
+                                                                                                            end
+                                                                                                            
+                                                                                                            if ~isempty(handles.uf2)
+                                                                                                                handles.uf2(handles.yind,:,:) = [];
+                                                                                                                handles.uf2(:,handles.xind,:) = [];
+                                                                                                                handles.vf2(handles.yind,:,:) = [];
+                                                                                                                handles.vf2(:,handles.xind,:) = [];
+                                                                                                                
+                                                                                                                handles.rs(handles.yind,:,:) = [];
+                                                                                                                handles.rs(:,handles.xind,:) = [];
+                                                                                                                handles.Tu(handles.yind,:,:) = [];
+                                                                                                                handles.Tu(:,handles.xind,:) = [];
+                                                                                                                handles.diss(handles.yind,:,:) = [];
+                                                                                                                handles.diss(:,handles.xind,:) = [];
+                                                                                                                handles.prod(handles.yind,:,:) = [];
+                                                                                                                handles.prod(:,handles.xind,:) = [];
+                                                                                                            end
+                                                                                                        catch
+                                                                                                            errordlg('Something went wrong with crop');
+                                                                                                        end
+                                                                                                        
+                                                                                                        update_gui(handles.fig,[],handles);
+                                                                                                        guidata(handles.fig,handles);
+                                                                                                        
+                                                                                                        
+                                                                                                        % --------------------------------------------------------------------
+                                                                                                        function interpolate_Callback(hObject, eventdata, handles)
+                                                                                                            % hObject    handle to interpolate (see GCBO)
+                                                                                                            % eventdata  reserved - to be defined in a future version of MATLAB
+                                                                                                            % handles    structure with handles and user data (see GUIDATA)
+                                                                                                            
+                                                                                                            [rows,cols] = size(handles.u(:,:,1));
+                                                                                                            
+                                                                                                            
+                                                                                                            
+                                                                                                            
+                                                                                                            
+                                                                                                            for i = 1:handles.N
+                                                                                                                
+                                                                                                                u = handles.u(:,:,i);
+                                                                                                                u(u==0) = NaN;
+                                                                                                                handles.u(:,:,i) = inpaint_nans(u,3);
+                                                                                                                u = handles.v(:,:,i);
+                                                                                                                u(u==0) = NaN;
+                                                                                                                handles.v(:,:,i) = inpaint_nans(u,3);
+                                                                                                                
+                                                                                                                %     vector = handles.u(:,:,i) + sqrt(-1)*handles.v(:,:,i);
+                                                                                                                %
+                                                                                                                %     [indx,indy] = find(abs(vector) == 0);
+                                                                                                                %
+                                                                                                                %     while ~isempty(indx)
+                                                                                                                %         for z=1:length(indx)
+                                                                                                                %             k = [max(3,indx(z))-2:min(rows-2,indx(z))+2];
+                                                                                                                %             m = [max(3,indy(z))-2:min(cols-2,indy(z))+2];
+                                                                                                                %             tmpvec = vector(k,m);
+                                                                                                                %             tmpvec = tmpvec(find(tmpvec));
+                                                                                                                %             vector(indx(z),indy(z)) = mean(real(tmpvec))+ sqrt(-1)*mean(imag(tmpvec));
+                                                                                                                %         end
+                                                                                                                %         try
+                                                                                                                %             [indx,indy] = find(abs(vector) == 0);
+                                                                                                                %         catch
+                                                                                                                %             indx = [];
+                                                                                                                %         end
+                                                                                                                %     end
+                                                                                                            end
+                                                                                                            
+                                                                                                            
+                                                                                                            % Update data
+                                                                                                            
+                                                                                                            handles.u(:,:,handles.N+1) = mean(handles.u(:,:,1:handles.N),3);
+                                                                                                            handles.v(:,:,handles.N+1) = mean(handles.v(:,:,1:handles.N),3);
+                                                                                                            if handles.state3d
+                                                                                                                handles.w(:,:,handles.N+1) = mean(handles.w(:,:,1:handles.N),3);
+                                                                                                                handles.wf = zeros(rows,cols,handles.N);
+                                                                                                                for i = 1:handles.N
+                                                                                                                    handles.wf(:,:,i) = handles.w(:,:,i) - handles.w(:,:,handles.N+1);
+                                                                                                                end
+                                                                                                            end
+                                                                                                            
+                                                                                                            handles.dx = handles.x(1,2) - handles.x(1,1);
+                                                                                                            handles.dy = handles.y(2,1) - handles.y(1,1);
+                                                                                                            
+                                                                                                            %
+                                                                                                            for i = 1:handles.N
+                                                                                                                handles.vf(:,:,i) = handles.v(:,:,i) - handles.v(:,:,handles.N+1);
+                                                                                                                handles.uf(:,:,i) = handles.u(:,:,i) - handles.u(:,:,handles.N+1);
+                                                                                                            end
+                                                                                                            %
+                                                                                                            for i = 1:handles.N+1
+                                                                                                                [handles.dudx(:,:,i),handles.dudy(:,:,i)] = lsgradient(handles.u(:,:,i),handles.dx, handles.dy);
+                                                                                                                [handles.dvdx(:,:,i),handles.dvdy(:,:,i)] = lsgradient(handles.v(:,:,i),handles.dx, handles.dy);
+                                                                                                            end
+                                                                                                            
+                                                                                                            update_gui(handles.fig,[],handles);
+                                                                                                            guidata(handles.fig,handles);
+                                                                                                            
+                                                                                                            
+                                                                                                            % --------------------------------------------------------------------
+                                                                                                            function export2MAT_Callback(hObject, eventdata, handles)
+                                                                                                                % hObject    handle to export2MAT (see GCBO)
+                                                                                                                % eventdata  reserved - to be defined in a future version of MATLAB
+                                                                                                                % handles    structure with handles and user data (see GUIDATA)
+                                                                                                                file = [];
+                                                                                                                file = inputdlg('File Name','Input Name for CSV File');
+                                                                                                                if ~isempty (file)
+                                                                                                                    eval(['save ',file{1},' -struct handles']);
+                                                                                                                else
+                                                                                                                    errordlg ('Choose a valid file name !!! ');
+                                                                                                                end;
+                                                                                                                % save exported -struct handles
+                                                                                                                
+                                                                                                                
+                                                                                                                % --------------------------------------------------------------------
+                                                                                                                function delete_current_Callback(hObject, eventdata, handles)
+                                                                                                                    % hObject    handle to delete_current (see GCBO)
+                                                                                                                    % eventdata  reserved - to be defined in a future version of MATLAB
+                                                                                                                    % handles    structure with handles and user data (see GUIDATA)
+                                                                                                                    
+                                                                                                                    % axes(handles.axes_main);
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    handles.u(:,:,handles.current) = [];
+                                                                                                                    handles.v(:,:,handles.current) = [];
+                                                                                                                    handles.dudx(:,:,handles.current) = [];
+                                                                                                                    handles.dudy(:,:,handles.current) = [];
+                                                                                                                    handles.dvdx(:,:,handles.current) = [];
+                                                                                                                    handles.dvdy(:,:,handles.current) = [];
+                                                                                                                    handles.uf(:,:,handles.current) = [];
+                                                                                                                    handles.vf(:,:,handles.current) = [];
+                                                                                                                    
+                                                                                                                    handles.N = handles.N - 1;
+                                                                                                                    
+                                                                                                                    update_gui(handles.fig,[],handles);
+                                                                                                                    guidata(handles.fig,handles);
+                                                                                                                    
+                                                                                                                    
+                                                                                                                    % --- Executes on button press in pod_pushbutton.
+                                                                                                                    function pod_pushbutton_Callback(hObject, eventdata, handles)
+                                                                                                                        % hObject    handle to pod_pushbutton (see GCBO)
+                                                                                                                        % eventdata  reserved - to be defined in a future version of MATLAB
+                                                                                                                        % handles    structure with handles and user data (see GUIDATA)
+                                                                                                                        if isempty(handles.property) | isempty(handles.i)
+                                                                                                                            errordlg('First, pick the quantity and region of interest !!!');
+                                                                                                                        else
+                                                                                                                            podHandle = podbox(handles);  % call to podbox
+                                                                                                                            handles.podOn = 1;
+                                                                                                                        end;
+                                                                                                                        
+                                                                                                                        guidata(handles.fig,handles);
+                                                                                                                        
+                                                                                                                        
