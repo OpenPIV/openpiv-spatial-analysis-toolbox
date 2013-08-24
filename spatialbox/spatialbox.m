@@ -125,7 +125,7 @@ if get(handles.checkbox_ensemble,'Value') == 1
                     handles.property = handles.uf2;
                     
                 else
-                    handles.uf2 = sqrt(mean(handles.uf.^2,3)); %sqrt(u'^2) % 16.06.08. Alex
+                    handles.('uf2') = sqrt(mean(handles.uf.^2,3)); %sqrt(u'^2) % 16.06.08. Alex
                     handles.property = handles.uf2;
                 end
                 %                                handles.units='[m/s]^2';
@@ -2775,7 +2775,7 @@ try
         handles.property(:,handles.xind,:) = [];
     end
     
-    if ~isempty(handles.uf2)
+    if isfield(handles,'uf2') % ~isempty(handles.uf2)
         handles.uf2(handles.yind,:,:) = [];
         handles.uf2(:,handles.xind,:) = [];
         handles.vf2(handles.yind,:,:) = [];
