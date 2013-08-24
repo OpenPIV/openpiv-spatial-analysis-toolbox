@@ -69,7 +69,7 @@ end
 warning off
 
 % --------------------------------------------------------------------
-function varargout = checkbox_arrow_Callback(h, eventdata, handles, varargin)
+function checkbox_arrow_Callback(~, ~, handles, varargin)
 % arrow on / off callback
 % if arrow - off is checked, hide the arrows.
 if get(handles.checkbox_arrow,'Value') == 0
@@ -85,7 +85,7 @@ update_gui(handles.fig,[],handles);
 
 
 % --------------------------------------------------------------------
-function varargout = checkbox_arrow_color_Callback(hObject, eventdata, handles, varargin)
+function checkbox_arrow_color_Callback(hObject, ~, handles, varargin)
 % Color arrows depends on the handles.property, chosen from the list of the
 % avialable quantities
 
@@ -104,7 +104,7 @@ update_gui(handles.fig,[],handles);
 
 
 % --------------------------------------------------------------------
-function varargout = popupmenu_quantity_Callback(h, eventdata, handles, varargin)
+function popupmenu_quantity_Callback(~, ~, handles, varargin)
 % Property Selection callback
 % Assign handles.property to present as color or contour later, according
 % to the flags of ensemble, fluctuatinons and possible quantities
@@ -262,14 +262,14 @@ if get(handles.checkbox_ensemble,'Value') == 1
                 handles.colorbar_flag = 0;
                 
             case 2
-                handles.units = handles.velUnits; ;
+                handles.units = handles.velUnits;
                 
                 handles.property = handles.u(:,:,handles.current);
             case 3
-                handles.units = handles.velUnits; ;
+                handles.units = handles.velUnits;
                 handles.property = handles.v(:,:,handles.current);
             case 4
-                handles.units = handles.velUnits; ;
+                handles.units = handles.velUnits;
                 handles.property = sqrt(handles.u(:,:,handles.current).^2+handles.v(:,:,handles.current).^2);%Velocity Magnitude
             case 5 % vorticity;
                 if ~isempty(findstr(handles.velUnits,'s'))
@@ -339,15 +339,15 @@ else % if no ensemble, it might be u or uf
                 handles.colorbar_flag = 0;
                 
             case 2
-                handles.units = handles.velUnits; ;
+                handles.units = handles.velUnits;
                 handles.property = handles.uf(:,:,handles.current);
                 handles.cmin = min(handles.uf(:)); handles.cmax = max(handles.uf(:));
             case 3
-                handles.units = handles.velUnits; ;
+                handles.units = handles.velUnits;
                 handles.property = handles.vf(:,:,handles.current);
                 handles.cmin = min(handles.vf(:)); handles.cmax = max(handles.vf(:));
             case 4
-                handles.units = handles.velUnits; ;
+                handles.units = handles.velUnits;
                 handles.property = sqrt(handles.uf(:,:,handles.current).^2+handles.vf(:,:,handles.current).^2);%Velocity Magnitude
                 handles.cmin = min(handles.uf(:).^2+handles.vf(:).^2);
                 handles.cmax = max(handles.uf(:).^2+handles.vf(:).^2);
@@ -408,13 +408,13 @@ else % if no ensemble, it might be u or uf
                 handles.colorbar_flag = 0;
                 
             case 2
-                handles.units = handles.velUnits; ;
+                handles.units = handles.velUnits;
                 handles.property = handles.u(:,:,handles.current);
             case 3
-                handles.units = handles.velUnits; ;
+                handles.units = handles.velUnits;
                 handles.property = handles.v(:,:,handles.current);
             case 4
-                handles.units = handles.velUnits; ;
+                handles.units = handles.velUnits;
                 handles.property = sqrt(handles.u(:,:,handles.current).^2 + handles.v(:,:,handles.current).^2);%Velocity Magnitude
             case 5
                 if ~isempty(findstr(handles.velUnits,'s'))
@@ -479,7 +479,7 @@ end
 
 % Record the string which is in the quantity popupmenu in something
 tmp = cellstr(get(handles.popupmenu_quantity,'String'));
-if strcmp(handles.previous_quantity,tmp{get(handles.popupmenu_quantity,'Value')}) == 0 & ...
+if strcmp(handles.previous_quantity,tmp{get(handles.popupmenu_quantity,'Value')}) == 0 && ...
         get(handles.popupmenu_eachfield,'Value') == 3 % all fields, update it
     handles.previous_quantity = tmp{get(handles.popupmenu_quantity,'Value')};
     popupmenu_eachfield_Callback(handles.fig, [], handles);
@@ -505,9 +505,9 @@ end
 % end;
 
 % --------------------------------------------------------------------
-function varargout = edit_numcolors_Callback(h, eventdata, handles, varargin)
+function edit_numcolors_Callback(h, ~, handles, varargin)
 % change number of colors
-handles.numcolors = str2num(get(h,'String'));
+handles.numcolors = str2double(get(h,'String'));
 if isempty(handles.numcolors),
     set(h,'String',10);
     handles.numcolors = 10;
@@ -517,7 +517,7 @@ update_gui(handles.fig,[],handles);
 
 
 % --------------------------------------------------------------------
-function varargout = update_gui(h, eventdata, handles, varargin)
+function update_gui(~, ~, handles, varargin)
 % update_gui is responsible for update of the screen with current property and contour type
 
 axes(handles.axes_main);
@@ -575,8 +575,8 @@ if ~isempty(handles.property)
         set(gca,'CLim',handles.climit);
     elseif handles.allfields == 1               % all_fields checkbox is processed here
         if get(handles.popupmenu_eachfield,'Value')==4;  % in case of manual
-            handles.cmin = str2num(get(handles.edit_min_clim,'String'));
-            handles.cmax = str2num(get(handles.edit_max_clim,'String'));
+            handles.cmin = str2double(get(handles.edit_min_clim,'String'));
+            handles.cmax = str2double(get(handles.edit_max_clim,'String'));
         end
         set(gca,'CLim',[handles.cmin handles.cmax]);
     end
@@ -623,13 +623,16 @@ if get(handles.checkbox_arrow,'Value') == 1
                 set(handles.color_quiver,'Visible','Off');
             end
         else
-            handles.color_quiver = quiverc(handles.x,handles.y,handles.u(:,:,handles.current),handles.v(:,:,handles.current),handles.arrow_scale,handles.property);
+            handles.color_quiver = quiverc(handles.x,handles.y,...
+                handles.u(:,:,handles.current),...
+                handles.v(:,:,handles.current),...
+                handles.arrow_scale,handles.property);
         end
         hold off;
-        if handles.colorbar_flag == 1                      % colorbar if necessary
+        if handles.colorbar_flag == 1 % colorbar if necessary
             delete(handles.colorbar);
             handles.colorbar = colorbar('peer',handles.axes_main,'East');
-            %             handles.colorbar = mcolorbar('EastOutside','peer',handles.axes_main);
+% handles.colorbar = mcolorbar('EastOutside','peer',handles.axes_main);
         end
     else
         hold on;
@@ -637,17 +640,22 @@ if get(handles.checkbox_arrow,'Value') == 1
         if get(handles.checkbox_fluct,'Value') == 1
             if ~isfield(handles ,'uf')
                 for i = 1:handles.N
-                    handles.uf(:,:,i) = handles.u(:,:,i) - handles.u(:,:,handles.N+1);
+                    handles.uf(:,:,i) = handles.u(:,:,i) - ...
+                        handles.u(:,:,handles.N+1);
                 end
             end
             if ~isfield(handles ,'vf')
                 for i = 1:handles.N
-                    handles.vf(:,:,i) = handles.v(:,:,i) - handles.v(:,:,handles.N+1);
+                    handles.vf(:,:,i) = handles.v(:,:,i) - ...
+                        handles.v(:,:,handles.N+1);
                 end
             end
             
             if get(handles.checkbox_ensemble,'Value') == 0
-                handles.quiverH = quiver(handles.x,handles.y,handles.uf(:,:,handles.current),handles.vf(:,:,handles.current),handles.arrow_scale,'k');
+                handles.quiverH = quiver(handles.x,handles.y, ...
+                    handles.uf(:,:,handles.current), ...
+                    handles.vf(:,:,handles.current),...
+                    handles.arrow_scale,'k');
             else
                 handles.quiverH = quiver(handles.x,handles.y,handles.u(:,:,handles.current),handles.v(:,:,handles.current),handles.arrow_scale,'k');
                 % nothing to display, arrows of ensemble + fluctuation = 0
@@ -655,7 +663,10 @@ if get(handles.checkbox_arrow,'Value') == 1
                 set(handles.quiverH,'Visible','Off');
             end
         else
-            handles.quiverH = quiver(handles.x,handles.y,handles.u(:,:,handles.current),handles.v(:,:,handles.current),handles.arrow_scale,'k');
+            handles.quiverH = quiver(handles.x,handles.y, ...
+                handles.u(:,:,handles.current),...
+                handles.v(:,:,handles.current),...
+                handles.arrow_scale,'k');
         end
         hold off;
     end
@@ -668,13 +679,16 @@ ylabel(['y ',handles.xUnits]); % 'y [m]');
 
 if isfield(handles,'colorbar') & get(handles.checkbox_colorbar,'Value') == 1
     axpos = handles.axpos; % 10.04.06
-    set(handles.axes_main,'Units','normalized','Position',[axpos(1),axpos(2),axpos(3)-.025,axpos(4)]);
+    set(handles.axes_main,'Units','normalized','Position',...
+        [axpos(1),axpos(2),axpos(3)-.025,axpos(4)]);
     if ishandle(handles.colorbar)
-        set(handles.colorbar,'Units','normalized','Position',[axpos(1)+axpos(3)+.02,axpos(2),.025,axpos(4)]);
+        set(handles.colorbar,'Units','normalized','Position',...
+            [axpos(1)+axpos(3)+.02,axpos(2),.025,axpos(4)]);
     elseif handles.colorbar_flag == 1
         handles.colorbar = colorbar('peer',handles.axes_main,'East');
-        set(handles.colorbar,'Units','normalized','Position',[axpos(1)+axpos(3)+.02,axpos(2),.025,axpos(4)]);
-        %             handles.colorbar = mcolorbar('EastOutside','peer',handles.axes_main);
+        set(handles.colorbar,'Units','normalized','Position',...
+            [axpos(1)+axpos(3)+.02,axpos(2),.025,axpos(4)]);
+ %    handles.colorbar = mcolorbar('EastOutside','peer',handles.axes_main);
     end
     
 end
@@ -683,25 +697,25 @@ set(gca,'ydir','reverse'); % Alex, 27.12.10, Hadar computer.
 guidata(handles.fig,handles);
 
 % --------------------------------------------------------------------
-function varargout = edit_min_clim_Callback(h, eventdata, handles, varargin)
+function edit_min_clim_Callback(h, ~, handles, varargin)
 % first editbox for 'manual' checkbox callback
-handles.cmin = str2num(get(h,'String')); % update cmin
+handles.cmin = str2double(get(h,'String')); % update cmin
 handles.alltodisp = 0;
 handles.allfields = 1;
 guidata(handles.fig,handles);
 % update_gui(handles.fig,[],handles);
 
 % --------------------------------------------------------------------
-function varargout = edit_max_clim_Callback(h, eventdata, handles, varargin)
+function edit_max_clim_Callback(h, ~, handles, varargin)
 % second editbox for 'manual' checkbox callback
-handles.cmax=str2num(get(h,'String')); % get new value for cmax
+handles.cmax = str2double(get(h,'String')); % get new value for cmax
 handles.alltodisp = 0;
 handles.allfields = 1;
 guidata(handles.fig,handles);
 % update_gui(handles.fig,[],handles);
 
 % --------------------------------------------------------------------
-function varargout = pushbutton_set_clim_Callback(h, eventdata, handles, varargin)
+function pushbutton_set_clim_Callback(h, eventdata, handles, varargin)
 % set button callback
 handles.cmin = eval(get(handles.edit_min_clim,'String'));
 handles.cmax = eval(get(handles.edit_max_clim,'String'));
