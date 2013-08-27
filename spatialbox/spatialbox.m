@@ -63,7 +63,7 @@ elseif ischar(varargin{1}) % Invoke CallBack functions
         end
     catch ME
         % disp(lasterr);
-        disp(ME.message); 
+        disp(ME.message);
     end
     
 end
@@ -633,7 +633,7 @@ if get(handles.checkbox_arrow,'Value') == 1
         if handles.colorbar_flag == 1 % colorbar if necessary
             delete(handles.colorbar);
             handles.colorbar = colorbar('peer',handles.axes_main,'East');
-% handles.colorbar = mcolorbar('EastOutside','peer',handles.axes_main);
+            % handles.colorbar = mcolorbar('EastOutside','peer',handles.axes_main);
         end
     else
         hold on;
@@ -689,7 +689,7 @@ if isfield(handles,'colorbar') && get(handles.checkbox_colorbar,'Value') == 1
         handles.colorbar = colorbar('peer',handles.axes_main,'East');
         set(handles.colorbar,'Units','normalized','Position',...
             [axpos(1)+axpos(3)+.02,axpos(2),.025,axpos(4)]);
- %    handles.colorbar = mcolorbar('EastOutside','peer',handles.axes_main);
+        %    handles.colorbar = mcolorbar('EastOutside','peer',handles.axes_main);
     end
     
 end
@@ -736,7 +736,7 @@ function pushbutton_previous_Callback(~, ~, handles, varargin)
 if handles.current > 1
     handles.current = handles.current - 1;  % update handles.current
     % display num. of current file being processed
-    set(handles.edit_current,'String',handles.current); 
+    set(handles.edit_current,'String',handles.current);
     delete(get(handles.axes_main,'children'));
     guidata(handles.fig,handles);
     popupmenu_quantity_Callback(handles.fig, [], handles);
@@ -1059,7 +1059,7 @@ if get(handles.checkbox_ensemble,'Value') == 1
     set(handles.edit_current,'Enable','off');
 else
     set(handles.popupmenu_eachfield,'String',...
-    'Each Field|All to Display|All Fields|Manual');
+        'Each Field|All to Display|All Fields|Manual');
     if (get(handles.checkbox_fluct,'Value') == ...
             get(handles.checkbox_fluct,'Max'));
         set (handles.popupmenu_quantity,'String',handles.fluct_list);
@@ -1156,18 +1156,18 @@ try
                 handles.u(:,:,1) = d(:,:,4);
                 handles.v(:,:,1) = d(:,:,5);
                 handles.w(:,:,1) = d(:,:,6);
-%                 handles.x = d(:,:,1)*handles.scale/1000;
-%                 handles.y = d(:,:,2)*handles.scale/1000;
-%                 handles.z = d(:,:,3)*handles.scale/1000;
-%                 handles.u(:,:,1) = d(:,:,4)*handles.scale/1000/handles.dt;
-%                 handles.v(:,:,1) = d(:,:,5)*handles.scale/1000/handles.dt;
-%                 handles.w(:,:,1) = d(:,:,6)*handles.scale/1000/handles.dt;
+                %                 handles.x = d(:,:,1)*handles.scale/1000;
+                %                 handles.y = d(:,:,2)*handles.scale/1000;
+                %                 handles.z = d(:,:,3)*handles.scale/1000;
+                %                 handles.u(:,:,1) = d(:,:,4)*handles.scale/1000/handles.dt;
+                %                 handles.v(:,:,1) = d(:,:,5)*handles.scale/1000/handles.dt;
+                %                 handles.w(:,:,1) = d(:,:,6)*handles.scale/1000/handles.dt;
                 
                 for i = 2:handles.N
                     d = svecread([handles.path,filesep,handles.files{i}],1,8);
-% handles.u(:,:,i) = d(:,:,4)*handles.scale/1000/handles.dt;
-% handles.v(:,:,i) = d(:,:,5)*handles.scale/1000/handles.dt;
-% handles.w(:,:,i) = d(:,:,6)*handles.scale/1000/handles.dt;
+                    % handles.u(:,:,i) = d(:,:,4)*handles.scale/1000/handles.dt;
+                    % handles.v(:,:,i) = d(:,:,5)*handles.scale/1000/handles.dt;
+                    % handles.w(:,:,i) = d(:,:,6)*handles.scale/1000/handles.dt;
                     handles.u(:,:,i) = d(:,:,4);
                     handles.v(:,:,i) = d(:,:,5);
                     handles.w(:,:,i) = d(:,:,6);
@@ -1205,9 +1205,9 @@ try
                 % the format is different from our ".txt" files which have
                 % no headers, and different from VEC format of Insight 3G,
                 % but has a header, single line that one can get out using:
-%                 fid = fopen(handles.files{1},'r');
-%                 header = fgetl(fid);
-%                 fclose(fid);
+                %                 fid = fopen(handles.files{1},'r');
+                %                 header = fgetl(fid);
+                %                 fclose(fid);
                 % get units - TODO. use findstr(header, '[') and ']'
                 handles.xUnits = 'pixels';
                 handles.velUnits = 'pixels';
@@ -1532,11 +1532,11 @@ while 1
     end
     % ---------------------------------
     sizeI = size(handles.i,1);
-%     rightcolX = fix(( limX(1,2)-limX(1,1) )/  handles.gridX )+1;
-%     uprowY    = fix(( limY(1,2)-limY(1,1) )/  handles.gridY )+1;
+    %     rightcolX = fix(( limX(1,2)-limX(1,1) )/  handles.gridX )+1;
+    %     uprowY    = fix(( limY(1,2)-limY(1,1) )/  handles.gridY )+1;
     sizeJ = size(handles.j,1);
-%     numofcols = rightcolX - leftcolX + 1;
-%     numofrows = uprowY - bottomrowY + 1;
+    %     numofcols = rightcolX - leftcolX + 1;
+    %     numofrows = uprowY - bottomrowY + 1;
     
     handles.i(sizeI+1,1) = row;
     handles.j(sizeJ+1,1) = col;
@@ -1593,7 +1593,7 @@ end
 rightLimit = fix((limX(1,2)-limX(1,1))/handles.gridX)+1;
 
 if rightcolX > rightLimit
-    rightcolX = rightLimit; 
+    rightcolX = rightLimit;
 end
 uprowLimit = fix((limY(1,2)-limY(1,1))/handles.gridY)+1;
 
@@ -1602,7 +1602,7 @@ if bottomrowY < 1
     plotstateX = 1;   % we need it to plot in right way
 end
 if uprowY>uprowLimit
-    uprowY=uprowLimit; 
+    uprowY=uprowLimit;
 end
 
 % --------- selection checking ---------------
@@ -1924,7 +1924,7 @@ while 1
     handles.i(sizeI+1:sizeI+numofrows,1) = 1:uprowY ;
     handles.j(sizeJ+1:sizeJ+numofrows,1) = col;
     row = 1:uprowY;
-    % topLeft(1) = uprowY; 
+    % topLeft(1) = uprowY;
     % bottomRight(1)=1;
     
     line(limX(1,1)+(col-1)*...
@@ -2334,12 +2334,22 @@ try
     d = load(handles.files{1});
     
     
+    
+    
+    
+    % we try to change the old way of treating x,y for the 2D grid
+    % to the one we found for the TXT files of new OpenPIV-C++ see loadvec
+    
+    
+    
+    %{
     x = d(:,1);
     x = x(x~=0);
     unX = unique(x);
     
     minX = min(unX);
     maxX = max(unX);
+    
     dX = ceil((maxX-minX)/(length(unX)-1));
     
     y = d(:,2);
@@ -2353,6 +2363,7 @@ try
     [handles.x,handles.y] = meshgrid(minX:dX:maxX,minY:dY:maxY);
     [rows,cols] = size(handles.x);
     
+    
     [handles.u,handles.v] = deal(zeros(rows,cols,handles.N+1)); % 11.04.04, Alex
     
     hwaitbar = waitbar(0,'Please wait...');
@@ -2364,10 +2375,11 @@ try
     tmp(tmp(:,2) == 0) = [];
     % y = tmp(:,2);
     %  x = tmp(:,1);
-    [m,n] = zeros(length(tmp(:,1)));
+    [m,n] = deal(zeros(length(tmp(:,1))));
     for j = 1:length(tmp(:,1))
         [m(j),n(j)] = find(handles.x == tmp(j,1) & handles.y == tmp(j,2));
     end
+    
     
     
     for i = 1:handles.N
@@ -2387,9 +2399,49 @@ try
         end
     end
     
+    
+    %}
+    
+    hwaitbar = waitbar(0,'Please wait...');
+    
+    % we need to know the reshape size:
+    rows = find(diff(d(:,1))<0,1);
+    cols = length(d(:,1))/rows;
+    
+    
+    [handles.u,handles.v] = deal(zeros(rows,cols,handles.N+1));
+    handles.x           = reshape(d(:,1),rows,cols);
+    handles.y           = reshape(d(:,2),rows,cols);
+    handles.u(:,:,1)    = reshape(d(:,3),rows,cols);
+    handles.v(:,:,1)    = reshape(d(:,4),rows,cols);
+    
+    orderX = order(min(d(:,1))); % added the option for small
+    
+    % values. next 'ceil' creates a bug if x,y are in meters for millimeter
+    % size fields
+    %
+    if orderX == -3 || orderX == -4,
+        handles.xUnits = 'mm';
+        handles.velUnits = 'm/s';
+    elseif orderX >= 0
+        handles.xUnits = 'pix';
+        handles.velUnits = 'pix/dt';
+    end
+    
+    for i = 2:handles.N
+        % d = dlmread(handles.files{i},'',1,0);
+        d = load(handles.files{i});
+        handles.u(:,:,i)    = reshape(d(:,3),rows,cols);
+        handles.v(:,:,i)    = reshape(d(:,4),rows,cols);
+    end
+    clear d
+    
+    
+    
+    
     close(hwaitbar)
-    handles.xUnits = 'pix';
-    handles.velUnits = 'pix/dt';
+    %     handles.xUnits = 'pix';
+    %     handles.velUnits = 'pix/dt';
     
     clear d tmp x y
     
@@ -2540,7 +2592,7 @@ return
 % if nargin < 2
 %     data = 'txt';
 % end
-% 
+%
 % switch data
 %     case{'_noflt.txt'} % a)
 %         direc = dir([dirname,filesep,'*_noflt.txt']);
@@ -2558,7 +2610,7 @@ return
 %         end
 %         direc = tmp;
 % end
-% 
+%
 % if ~isempty(direc(1).name) && ~isempty(str2num(direc(1).name(1:length(direc(1).name)-4)))
 %     for i = 1:length(direc)
 %         n(i) = str2num(direc(i).name(1:length(direc(i).name)-4));
@@ -2566,7 +2618,7 @@ return
 %     [junk,j] = sort(n);
 %     direc = direc(j);
 % end
-% 
+%
 % filenames={};
 % [filenames{1:length(direc),1}] = deal(direc.name);
 % % filenames = sortrows(filenames);
