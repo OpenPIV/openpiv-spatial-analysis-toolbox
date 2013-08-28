@@ -1,18 +1,6 @@
 % SPATIALBOX - main GUI file, created by GUIDE
 %
 
-% TODO list:
-% 1. lastpath - option to remember the last path used for the data
-% 2. add origin to handles: top or bottom. if it's like in VEC files, 
-% then we need to flip the y-axis using set(gca,'ydir','reverse')
-% or if it's a text file, vice versa. you can identify it from the file
-% 3. remove load vec, load txt and so on. do one single load data and there
-% you can select either MAT or VEC or TXT extensions
-% 4. add option to read floating values for x,y (e.g. in meters or
-% millimeters)
-% 
-
-
 % Copyright (c) 1998-2012 OpenPIV group
 % See the file license.txt for copying permission.
 
@@ -1120,14 +1108,54 @@ handles.CH          =   [];                        % 0304 by Denis
 guidata(handles.fig,handles);
 update_gui(handles.fig,[],handles);
 
-% ------------------------------------------------------------------------
-function File_Callback(~, ~, ~)
+
+
+
+function loadData_Callback(handles)
+% Single load function that can read all types of data:
+% 1. VEC files from Insight (headers, data)
+% 2. TXT files from OpenPIV-Matlab (no headers, tab delimited)
+% 3. TXT files from OpenPIV-C++ (with header, delimited)
+global orighandles;
+if isfield(handles,'restoreorig')
+    handles = orighandles;
+end
+handles.restoreorig = 1;
+
+keyboard
+
+files = uipickfiles('Type', ...
+    {'*.txt', 'OpenPIV TXT files'; ...
+    '*.vec', 'Insight 3G files'; ...
+    '*.txt', 'New OpenPIV TXT files with headers'});
+
+if iscell(files{1}) && ~isemtpy(files) % could be non cell or length zero
+    % if something is wrong
+    [~,~,fext] = fileparts(tmp);
+    handles.files = files;
+    
+    switch(lower(fext(2:end)))
+        case {'vec'}
+            handles = loadVec(handles);
+        case {'txt'}
+            handles = loadtxt(handles);
+        case {'mat'}
+            handles = loadmat(handles);
+            
+        otherwise
+            ;
+            
+    end
+end
+
+
+
 
 
 
 
 % ------------------   Load and prepare data module --------------------------------------------------
-function loadVec_Callback(~, ~, handles)
+function handles = loadVec(handles)
 global orighandles;
 if isfield(handles,'restoreorig')
     handles = orighandles;
@@ -2352,9 +2380,9 @@ try
         error('Different TXT format, try using VEC loader');
         return
     else
-         d = load(handles.files{1});
+        d = load(handles.files{1});
     end
-
+    
     
     
     
