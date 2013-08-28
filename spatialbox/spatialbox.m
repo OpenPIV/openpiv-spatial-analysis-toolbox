@@ -694,7 +694,7 @@ if isfield(handles,'colorbar') && get(handles.checkbox_colorbar,'Value') == 1
     
 end
 
-set(gca,'ydir','reverse'); % Alex, 27.12.10, Hadar computer.
+% set(gca,'ydir','reverse'); % Alex, 27.12.10, Hadar computer.
 guidata(handles.fig,handles);
 
 % --------------------------------------------------------------------
@@ -2330,9 +2330,19 @@ try
     
     %%%%%%%%%%%%%%%%
     
+    % with the new TXT files, sometimes the user tries to use our
+    % old TXT format. if it fails, then use the other loading machine
     
-    d = load(handles.files{1});
     
+    fid = fopen(handles.files{1},'r');
+    firstline = fgetl(fid);
+    if isnan(str2double(strtok(firstline)))
+        error('Different TXT format, try using VEC loader');
+        return
+    else
+         d = load(handles.files{1});
+    end
+
     
     
     

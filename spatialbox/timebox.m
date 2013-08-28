@@ -801,7 +801,7 @@ if ~isempty(hl)
 end;
 
 % --------------------------------------------------------------------
-function export_spectrum_Callback(hObject, eventdata, handles)
+function export_spectrum_Callback(~, ~, handles)
 % hObject    handle to export_spectrum (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -840,7 +840,7 @@ end;
 
 
 % --- Executes during object creation, after setting all properties.
-function edit_winlen_CreateFcn(hObject, eventdata, handles)
+function edit_winlen_CreateFcn(hObject, ~, ~)
 % hObject    handle to edit_winlen (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -895,21 +895,21 @@ lags = [-(na-1):na-1];
 
 
 % --------------------------------------------------------------------
-function export2csv_Callback(hObject, eventdata, handles)
+function export2csv_Callback
 % hObject    handle to export2csv (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 
 % --------------------------------------------------------------------
-function export2matlab_Callback(hObject, eventdata, handles)
+function export2matlab_Callback
 % hObject    handle to export2matlab (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 
 % --------------------------------------------------------------------
-function timeplot2figure_Callback(hObject, eventdata, handles)
+function timeplot2figure_Callback(~, ~, handles)
 % hObject    handle to timeplot2figure (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -927,7 +927,7 @@ guidata(handles.fig, handles);
 
 
 % --------------------------------------------------------------------
-function spectrum2figure_Callback(hObject, eventdata, handles)
+function spectrum2figure_Callback(~, ~, handles)
 % hObject    handle to spectrum2figure (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
