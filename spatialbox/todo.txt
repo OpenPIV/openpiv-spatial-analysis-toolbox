@@ -1,0 +1,10 @@
+% TODO list:
+% 1. lastpath - option to remember the last path used for the data
+% 2. add origin to handles: top or bottom. if it's like in VEC files, 
+% then we need to flip the y-axis using set(gca,'ydir','reverse')
+% or if it's a text file, vice versa. you can identify it from the file
+% 3. remove load vec, load txt and so on. do one single load data and there
+% you can select either MAT or VEC or TXT extensions
+% 4. add option to read floating values for x,y (e.g. in meters or
+% millimeters)
+% 
