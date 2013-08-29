@@ -13,7 +13,7 @@
 % it just doubles the handles.dx and handles.dy
 
 function varargout = spatialbox(varargin)
-warning off %#ok<WNOFF>
+warning off
 
 global orighandles current_path;
 
@@ -67,6 +67,7 @@ elseif ischar(varargin{1}) % Invoke CallBack functions
     end
     
 end
+
 % warning off
 
 % --------------------------------------------------------------------
@@ -521,7 +522,7 @@ update_gui(handles.fig,[],handles);
 function update_gui(~, ~, handles, varargin)
 % update_gui is responsible for update of the screen with current property and contour type
 
-axes(handles.axes_main); %#ok<MAXES>
+axes(handles.axes_main);
 delete(get(handles.axes_main,'children'));
 
 if get(handles.popupmenu_quantity,'Value') == 1 ,
@@ -1111,7 +1112,7 @@ update_gui(handles.fig,[],handles);
 
 
 
-function loadData_Callback(handles)
+function loadVec_Callback(~,~,handles)
 % Single load function that can read all types of data:
 % 1. VEC files from Insight (headers, data)
 % 2. TXT files from OpenPIV-Matlab (no headers, tab delimited)
@@ -1125,169 +1126,52 @@ handles.restoreorig = 1;
 keyboard
 
 files = uipickfiles('Type', ...
-    {'*.txt', 'OpenPIV TXT files'; ...
-    '*.vec', 'Insight 3G files'; ...
-    '*.txt', 'New OpenPIV TXT files with headers'});
+    {'*.txt', 'OpenPIV TXT format'; ...
+    '*.mat', 'OpenPIV MAT format'; ...
+    '*.vec', 'Insight 3G files'});
 
 if iscell(files{1}) && ~isemtpy(files) % could be non cell or length zero
     % if something is wrong
-    [~,~,fext] = fileparts(tmp);
+    [~,~,fext] = fileparts(files{1});
     handles.files = files;
+    
+    
+    
+    % check the type of the file: header - new format, no header - old format
+    fid = fopen(files{1},'r');
+    firstline = fgetl(fid);
+    firsttoken = strtok(firstline);
+    if isnan(str2double(firsttoken)) % it's not a number
+        isheader = true;
+    else
+        isheader = false;
+    end
+    
+    
+    
     
     switch(lower(fext(2:end)))
         case {'vec'}
-            handles = loadVec(handles);
+            handles = loadvec(handles);
         case {'txt'}
-            handles = loadtxt(handles);
+            if ~isheader
+                handles = loadtxt(handles);
+            else
+                handles = loadOpenPIVTXT(handles);
+            end
         case {'mat'}
             handles = loadmat(handles);
             
         otherwise
-            ;
             
     end
 end
 
+% data pre-processing, parameter setting:
 
 
 
-
-
-
-% ------------------   Load and prepare data module --------------------------------------------------
-function handles = loadVec(handles)
-global orighandles;
-if isfield(handles,'restoreorig')
-    handles = orighandles;
-end
-handles.restoreorig = 1;
-
-
-try
-    % [gui_files,gui_path,handles.dt,handles.scale,handles.state3d] = cil_uigetfiles;
-    gui_files = uipickfiles;
-    handles.dt = 1;
-    handles.state3d = 0;
-    handles.scale = 1;
-    [gui_path,~,~] = fileparts(gui_files{1});
-    
-    
-    handles.N = length(gui_files); % number of files selected
-    if  handles.N > 0
-        handles.files = gui_files;
-        handles.path = gui_path;
-        set(handles.fig,'pointer','watch');
-    else
-        return
-    end
-    
-    switch handles.state3d
-        case 1
-            if ~isempty(findstr(handles.files{1},'v3d'))
-                [handles.xUnits,handles.velUnits,d] = ...
-                    svecread(fullfile(handles.path,handles.files{1}));
-                [rows,cols,~] = size(d);
-                [handles.u,handles.v,handles.w] = ...
-                    deal(zeros(rows,cols,handles.N+1)); % 11.04.04, Alex
-                % Bug fixes June 26, 2004, for the first release.
-                handles.x = d(:,:,1);
-                handles.y = d(:,:,2);
-                handles.z = d(:,:,3);
-                handles.u(:,:,1) = d(:,:,4);
-                handles.v(:,:,1) = d(:,:,5);
-                handles.w(:,:,1) = d(:,:,6);
-                %                 handles.x = d(:,:,1)*handles.scale/1000;
-                %                 handles.y = d(:,:,2)*handles.scale/1000;
-                %                 handles.z = d(:,:,3)*handles.scale/1000;
-                %                 handles.u(:,:,1) = d(:,:,4)*handles.scale/1000/handles.dt;
-                %                 handles.v(:,:,1) = d(:,:,5)*handles.scale/1000/handles.dt;
-                %                 handles.w(:,:,1) = d(:,:,6)*handles.scale/1000/handles.dt;
-                
-                for i = 2:handles.N
-                    d = svecread([handles.path,filesep,handles.files{i}],1,8);
-                    % handles.u(:,:,i) = d(:,:,4)*handles.scale/1000/handles.dt;
-                    % handles.v(:,:,i) = d(:,:,5)*handles.scale/1000/handles.dt;
-                    % handles.w(:,:,i) = d(:,:,6)*handles.scale/1000/handles.dt;
-                    handles.u(:,:,i) = d(:,:,4);
-                    handles.v(:,:,i) = d(:,:,5);
-                    handles.w(:,:,i) = d(:,:,6);
-                end
-                clear d
-            end
-        case 0
-            if ~isempty(findstr(lower(handles.files{1}),'vec'))            % process .vec files
-                % read the first file, determine the size
-                % [handles.xUnits,handles.velUnits,d] = vecread(fullfile(handles.path,handles.files{1}));
-                [handles.xUnits,handles.velUnits,d] = vecread(handles.files{1});
-                [rows,cols,~] = size(d);
-                [handles.u,handles.v] = deal(zeros(rows,cols,handles.N+1)); % 11.04.04, Alex
-                handles.x           = d(:,:,1);
-                handles.y           = d(:,:,2);
-                handles.u(:,:,1)    = d(:,:,3);
-                handles.v(:,:,1)    = d(:,:,4);
-                % Bug fixes, June 26, 2004
-                %                 handles.x           = d(:,:,1)*handles.scale/1000;
-                %                 handles.y           = d(:,:,2)*handles.scale/1000;
-                %                 handles.u(:,:,1)    = d(:,:,3)*handles.scale/1000/handles.dt;
-                %                 handles.v(:,:,1)    = d(:,:,4)*handles.scale/1000/handles.dt;
-                %
-                for i = 2:handles.N
-                    % d = vecread([handles.path,filesep,handles.files{i}],1,5);
-                    d = vecread(handles.files{i},1,5);
-                    %                     handles.u(:,:,i) = d(:,:,3)*handles.scale/1000/handles.dt;
-                    %                     handles.v(:,:,i) = d(:,:,4)*handles.scale/1000/handles.dt;
-                    handles.u(:,:,i) = d(:,:,3);
-                    handles.v(:,:,i) = d(:,:,4);
-                end
-                clear d
-            elseif ~isempty(findstr(lower(handles.files{1}),'txt')) % new files, created for stratified
-                % project, probably by Zach Taylor version of OpenPIV C++
-                % the format is different from our ".txt" files which have
-                % no headers, and different from VEC format of Insight 3G,
-                % but has a header, single line that one can get out using:
-                %                 fid = fopen(handles.files{1},'r');
-                %                 header = fgetl(fid);
-                %                 fclose(fid);
-                % get units - TODO. use findstr(header, '[') and ']'
-                handles.xUnits = 'pixels';
-                handles.velUnits = 'pixels';
-                
-                
-                % and the read the data in the file using:
-                d = dlmread(handles.files{1},'',1,0);
-                
-                % we need to know the reshape size:
-                rows = find(diff(d(:,1))<0,1);
-                cols = length(d(:,1))/rows;
-                
-                [handles.u,handles.v] = deal(zeros(rows,cols,handles.N+1)); % 11.04.04, Alex
-                handles.x           = reshape(d(:,1),rows,cols);
-                handles.y           = reshape(d(:,2),rows,cols);
-                handles.u(:,:,1)    = reshape(d(:,3),rows,cols);
-                handles.v(:,:,1)    = reshape(d(:,4),rows,cols);
-                
-                for i = 2:handles.N
-                    d = dlmread(handles.files{i},'',1,0);
-                    handles.u(:,:,i)    = reshape(d(:,3),rows,cols);
-                    handles.v(:,:,i)    = reshape(d(:,4),rows,cols);
-                end
-                clear d
-                
-            end
-            
-            
-            
-            
-    end
-    
-catch ME
-    % errordlg('Something wrong with vector files');
-    errordlg(ME.message)
-    set(handles.fig,'pointer','arrow');
-    return
-end
-
-handles.current = 1;                      % current file beeing displayed
+handles.current = 1; % current file beeing displayed
 % Display first file number, total number of files
 set(handles.edit_current,'String',handles.current);
 set(handles.edit_numfields,'String',handles.N);
@@ -1315,9 +1199,7 @@ if handles.dx == 0 && handles.dy == 0
     handles.v = permute(handles.v,[2 1 3]);
     handles.dx = handles.x(1,2) - handles.x(1,1);
     handles.dy = handles.y(2,1) - handles.y(1,1);
-    tmprows = cols;
-    cols = rows;
-    rows = tmprows;
+    [rows,cols] = size(handles.x);
 end
 
 
@@ -1466,6 +1348,14 @@ guidata(handles.fig,handles);
 
 % Make default plot
 update_gui(handles.fig,[],handles);
+
+
+
+
+
+
+% here was the loadvec function
+
 
 
 
@@ -2067,575 +1957,9 @@ function pushbutton_stats_Callback(~, ~, ~)
 % handles    structure with handles and user data (see GUIDATA)
 
 
-% --------------------------------------------------------------------
-function loadMat_Callback(~, ~, handles)
-% hObject    handle to loadMat (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-global orighandles;
-if isfield(handles,'restoreorig')
-    handles = orighandles;
-end
-handles.restoreorig = 1;
-handles.dt = 1;
-handles.state3d = 0;
 
 
-try
-    % Check the contents of the MAT file, if it's coordinates only or full file
-    % curdir = cd;
-    % [coordMatfile,coordMatpath] = uigetfile('*.mat','Choose Coordinates or EXPORTED MAT file');
-    coordMatfile = uipickfiles('FilterSpec','*.mat');
-    w = who('-file',coordMatfile{1});
-    
-    
-    exportedMat = false;
-    if sum(cellfun(@sum,strfind(w,'xUnits'))) > 0, exportedMat = true; end
-    
-    
-    
-    switch exportedMat
-        case true
-            % load "ready" dataset, no need for double loading of
-            % coordinates and velocities
-            tmp = load(coordMatfile{1});
-            handles.x = tmp.x;
-            handles.y = tmp.y;
-            handles.u = tmp.u;
-            handles.v = tmp.v;
-            handles.uf = tmp.uf;
-            handles.vf = tmp.vf;
-            handles.files = tmp.files;
-            handles.path = tmp.path;
-            handles.dx = tmp.dx;
-            handles.dy = tmp.dy;
-            handles.dudx = tmp.dudx;
-            handles.dvdx = tmp.dvdx;
-            handles.dudy = tmp.dudy;
-            handles.dvdy = tmp.dvdy;
-            handles.gridX = tmp.gridX;
-            handles.gridY = tmp.gridY;
-            handles.N = tmp.N;
-            handles.xUnits = tmp.xUnits;
-            handles.velUnits = tmp.velUnits;
-            clear tmp
-            
-        case false
-            load(coordMatfile{1});
-            
-            
-            if exist('x','var')
-                handles.x = x;
-                handles.y = y; % max(y(:)) - y;
-                clear x y
-            elseif exist('X','var')
-                handles.x = X;
-                handles.y = Y; % max(Y(:)) - Y;
-                clear X Y
-            else
-                errordlg('Coordinates file does not include x or X variables');
-                set(handles.fig,'pointer','arrow');
-            end
-            coordMatfile = uipickfiles('Type',{'*.mat','Velocity MAT file'});
-            load(coordMatfile{1});
-            if exist('fu','var')
-                handles.u = fu;
-                handles.v = fv;
-                clear fu fv
-            elseif exist('U','var')
-                handles.u = U;
-                handles.v = V;
-                clear U V
-            elseif exist('u','var')
-                handles.u = u;
-                handles.v = v;
-                clear u v
-            else
-                errordlg('Wrong velocity names');
-            end
-            
-            
-            [rows,cols,handles.N] = size(handles.u);
-            
-            handles.xUnits = 'pix';
-            handles.velUnits = 'pix/s';
-        otherwise
-            
-    end
-catch ME
-    
-    errordlg(ME.message); %'Something wrong with MAT files'); % vector -> MAT
-    set(handles.fig,'pointer','arrow');
-    return
-end
 
-try
-    set(handles.data_info,'String',coordMatfile); % july 27, Alex's Laptop, SVN assembla
-catch ME
-    % setfield(handles,'data_info',coordMatfile); % 18.12.10, dropbox
-    disp(ME.message);
-    handles.('data_info') = coordMatfile; % Aug. 2013
-end
-handles.current = 1;                      % current file beeing displayed
-% Display first file number, total number of files
-set(handles.edit_current,'String',handles.current);
-set(handles.edit_numfields,'String',handles.N);
-
-% Initialize color, number of colors for contours
-handles.numcolors = 10;                   % default number of colors
-set(handles.edit_numcolors,'String', handles.numcolors);
-
-% Cat the mean values at the end
-if ~exportedMat
-    handles.u(:,:,handles.N+1) = mean(handles.u(:,:,1:handles.N),3);
-    handles.v(:,:,handles.N+1) = mean(handles.v(:,:,1:handles.N),3);
-    if handles.state3d
-        handles.w(:,:,handles.N+1) = mean(handles.w(:,:,1:handles.N),3);
-        handles.wf = zeros(rows,cols,handles.N);
-        for i = 1:handles.N
-            handles.wf(:,:,i) = handles.w(:,:,i) - handles.w(:,:,handles.N+1);
-        end
-    end
-    
-    % handles.dx = abs(handles.x(1,1) - handles.x(1,2));
-    % handles.dy = abs(handles.y(1,1) - handles.y(2,1));
-    % Bug, fixed at 16.06 after the email of Hai
-    handles.dx = handles.x(1,2) - handles.x(1,1);
-    handles.dy = handles.y(2,1) - handles.y(1,1);
-    
-    % Preallocate memory and calculate all the necessary quantities
-    % Fluctuations (last one is zero, we do not need it)
-    handles.uf = zeros(rows,cols,handles.N);
-    handles.vf = zeros(rows,cols,handles.N);
-    %
-    for i = 1:handles.N
-        handles.vf(:,:,i) = handles.v(:,:,i) - handles.v(:,:,handles.N+1);
-    end
-    %
-    for i = 1:handles.N
-        handles.uf(:,:,i) = handles.u(:,:,i) - handles.u(:,:,handles.N+1);
-    end
-    
-    % Derivatives
-    handles.dudx = zeros(rows,cols,handles.N+1);
-    handles.dudy = zeros(rows,cols,handles.N+1);
-    handles.dvdx = zeros(rows,cols,handles.N+1);
-    handles.dvdy = zeros(rows,cols,handles.N+1);
-    %
-    for i = 1:handles.N+1
-        [handles.dudx(:,:,i),handles.dudy(:,:,i)] = ...
-            lsgradient(handles.u(:,:,i),handles.dx, handles.dy);
-        [handles.dvdx(:,:,i),handles.dvdy(:,:,i)] = ...
-            lsgradient(handles.v(:,:,i),handles.dx, handles.dy);
-    end
-    
-    % Possible future development, eliminating strong gradients
-    % on the borders
-    % handles.dudx(1:2,:,:)       = NaN;
-    % handles.dudx(end-1:end,:,:) = NaN;
-    % handles.dudx(:,1:2,:)       = NaN;
-    % handles.dudx(:,end-1:end,:) = NaN;
-    
-end
-
-
-%
-% More defaults
-handles.arrow_scale = 1;                % default scale
-set(handles.edit_arrow_size,'String',handles.arrow_scale);
-
-% Default situation, instantaneous, not Ensemble, not fluctuations
-set(handles.checkbox_ensemble,'Value',0);
-set(handles.checkbox_fluct,'Value',0);
-
-% No colors, no labels
-handles.color = 0;                % display colored / black figure
-handles.alltodisp = 0;            % default all_to display is unset
-handles.allfields = 0;
-handles.labelit = 0;              % label for contour
-handles.colorbar_flag = 0;
-handles.current_index = handles.current;
-handles.distribOn=0;
-handles.rowlock=0; handles.columnlock=0;
-handles.previousSel=[];
-
-% These are future values, for the TimeBox
-handles.i=[];
-handles.j=[];
-handles.PointsH=[];
-handles.Allselected=0;
-
-% handles.dx = handles.x(1,2) - handles.x(1,1);
-% handles.dy = handles.y(2,1) - handles.y(1,1);
-
-% abs() is added on Dec.13,2004. by Alex on IHW_Liberzon computer
-%
-handles.gridX = abs(handles.x(1,2) - handles.x(1,1));
-handles.gridY = abs(handles.y(1,1) - handles.y(2,1));
-
-% Show some and hide some controls
-set(handles.popupmenu_quantity,'Visible','on');
-set(handles.popupmenu_quantity,'Value',1);
-set(handles.popupmenu_contour_type,'Visible','on');
-set(handles.popupmenu_contour_type,'Value',1);
-set(handles.popupmenu_eachfield,'Visible','on');
-set(handles.popupmenu_eachfield,'Value',1);
-
-% Some only part of them in Enable mode
-set(handles.checkbox_arrow,'Enable','On');
-set(handles.edit_arrow_size,'Enable','On');
-set(handles.checkbox_fluct,'Enable','On');
-set(handles.checkbox_ensemble,'Enable','On');
-set(handles.popupmenu_quantity,'Enable','On');
-set(handles.pushbutton_previous,'Enable','On');
-set(handles.pushbutton_next,'Enable','On');
-set(handles.edit_current,'Enable','On');
-set(handles.pushbutton_animate,'Enable','On');
-set(handles.pushbutton_save_movie,'Enable','on');
-% set(handles.pushbutton_stats,'Enable','on');
-
-
-% Properties
-set(handles.popupmenu_quantity,'String',handles.inst_list);
-handles.property = [];
-
-% ---------------- store all handles of spatial controls ------------------
-% handles.spatial_controls=[handles.checkbox_ensemble,handles.checkbox_fluct,handles.checkbox_arrow,handles.checkbox_arrow_color,...
-%         handles.checkbox_label,handles.checkbox_colorbar,handles.edit_arrow_size,handles.edit_numcolors,...
-%         handles.edit_current,handles.edit_numfields,...
-%         handles.text_contour_quantity, handles.text_contourtype, handles.text_numberofcolors, handles.text7,handles.text2,...
-%         handles.text_arrow_size, handles.pushbutton_previous, handles.pushbutton_next, ...
-%         handles.pushbutton_animate, handles.pushbutton_save_movie, ...
-%         handles.frame_controls,handles.frame8,handles.frame_contour_quantity,handles.frame_contour_type,handles.frame7,...
-%         handles.frame_arrow, handles.text5, handles.popupmenu_quantity,handles.popupmenu_contour_type,...
-%         handles.popupmenu_eachfield];% ,handles.pushbutton_stats];
-
-% -------------- store all handles of select controls ----------------
-% handles.select_controls=[handles.pushbutton_selectpoints,handles.pushbutton_selectreg,handles.pushbutton_selectall,...
-%          handles.pushbutton_profile1,handles.pushbutton_time,...
-%          handles.pushbutton_reset, handles.rowpushbutton, handles.colpushbutton];
-
-handles.arrow_ctrls=[handles.edit_arrow_size,handles.checkbox_arrow,handles.checkbox_arrow_color];
-% handles.stat_controls=[handles.ed_mean,handles.ed_std,handles.ed_min,handles.ed_max,handles.ed_text,...
-%         handles.ed_pushsavestl,handles.ed_frame,handles.ed_pushclose,handles.ed_textmean,...
-%         handles.ed_textstd,handles.ed_textmax,handles.ed_textmin];
-
-
-set(handles.pushbutton_spatial,'Enable','on');
-set(handles.pushbutton_select,'Enable','on');
-
-set(handles.fig,'pointer','arrow');
-
-% added on 10.04.06 for R12SP3 version
-handles.axpos = get(handles.axes_main,'Position');
-
-% Update all handles structure
-guidata(handles.fig,handles);
-
-% Make default plot
-update_gui(handles.fig,[],handles);
-return
-% --------------------------------------------------------------------
-
-
-% --------------------------------------------------------------------
-function loadTXT_Callback(~, ~, handles)
-% hObject    handle to loadTXT (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-global orighandles;
-if isfield(handles,'restoreorig')
-    handles = orighandles;
-end
-
-handles.restoreorig = 1;
-handles.state3d = 0;
-handles.dt  = 1;
-
-
-try
-    % [gui_files,gui_path] = uigetfile('*.txt','Select the location and the type of the TXT file');
-    handles.files = uipickfiles; % April 2, 2010, AL
-    
-    
-    handles.N = length(handles.files); % number of files selected
-    if  handles.N > 0
-        [handles.path,~,~] = fileparts(handles.files{1});
-        set(handles.fig,'pointer','watch');
-    else
-        return
-    end
-    
-    %%%%%%%%%%%%%%%%
-    
-    % with the new TXT files, sometimes the user tries to use our
-    % old TXT format. if it fails, then use the other loading machine
-    
-    
-    fid = fopen(handles.files{1},'r');
-    firstline = fgetl(fid);
-    if isnan(str2double(strtok(firstline)))
-        error('Different TXT format, try using VEC loader');
-        return
-    else
-        d = load(handles.files{1});
-    end
-    
-    
-    
-    
-    
-    % we try to change the old way of treating x,y for the 2D grid
-    % to the one we found for the TXT files of new OpenPIV-C++ see loadvec
-    
-    
-    
-    %{
-    x = d(:,1);
-    x = x(x~=0);
-    unX = unique(x);
-    
-    minX = min(unX);
-    maxX = max(unX);
-    
-    dX = ceil((maxX-minX)/(length(unX)-1));
-    
-    y = d(:,2);
-    y = y(y~=0);
-    unY = unique(y);
-    
-    minY = min(unY);
-    maxY = max(unY);
-    dY = ceil((maxY-minY)/(length(unY)-1));
-    
-    [handles.x,handles.y] = meshgrid(minX:dX:maxX,minY:dY:maxY);
-    [rows,cols] = size(handles.x);
-    
-    
-    [handles.u,handles.v] = deal(zeros(rows,cols,handles.N+1)); % 11.04.04, Alex
-    
-    hwaitbar = waitbar(0,'Please wait...');
-    
-    
-    
-    tmp = d;
-    tmp(tmp(:,1) == 0) = [];
-    tmp(tmp(:,2) == 0) = [];
-    % y = tmp(:,2);
-    %  x = tmp(:,1);
-    [m,n] = deal(zeros(length(tmp(:,1))));
-    for j = 1:length(tmp(:,1))
-        [m(j),n(j)] = find(handles.x == tmp(j,1) & handles.y == tmp(j,2));
-    end
-    
-    
-    
-    for i = 1:handles.N
-        waitbar(i/handles.N,hwaitbar)
-        % x = d(:,1,i);
-        % tmp = d(x~=0,:,i);
-        % presumably cleans bug values with zero in x and y - not clear
-        % yet, 23.3.11, Alex
-        
-        tmp = load(handles.files{i});
-        tmp(tmp(:,1) == 0) = [];
-        tmp(tmp(:,2) == 0) = [];
-        
-        for j = 1:length(tmp(:,1))
-            handles.u(m(j),n(j),i) = tmp(j,3);
-            handles.v(m(j),n(j),i) = tmp(j,4);
-        end
-    end
-    
-    
-    %}
-    
-    hwaitbar = waitbar(0,'Please wait...');
-    
-    % we need to know the reshape size:
-    rows = find(diff(d(:,1))<0,1);
-    cols = length(d(:,1))/rows;
-    
-    
-    [handles.u,handles.v] = deal(zeros(rows,cols,handles.N+1));
-    handles.x           = reshape(d(:,1),rows,cols);
-    handles.y           = reshape(d(:,2),rows,cols);
-    handles.u(:,:,1)    = reshape(d(:,3),rows,cols);
-    handles.v(:,:,1)    = reshape(d(:,4),rows,cols);
-    
-    orderX = order(min(d(:,1))); % added the option for small
-    
-    % values. next 'ceil' creates a bug if x,y are in meters for millimeter
-    % size fields
-    %
-    if orderX == -3 || orderX == -4,
-        handles.xUnits = 'mm';
-        handles.velUnits = 'm/s';
-    elseif orderX >= 0
-        handles.xUnits = 'pix';
-        handles.velUnits = 'pix/dt';
-    end
-    
-    for i = 2:handles.N
-        % d = dlmread(handles.files{i},'',1,0);
-        d = load(handles.files{i});
-        handles.u(:,:,i)    = reshape(d(:,3),rows,cols);
-        handles.v(:,:,i)    = reshape(d(:,4),rows,cols);
-    end
-    clear d
-    
-    
-    
-    
-    close(hwaitbar)
-    %     handles.xUnits = 'pix';
-    %     handles.velUnits = 'pix/dt';
-    
-    clear d tmp x y
-    
-catch ME
-    errordlg(ME.message); %'Something wrong with TXT files');
-    set(handles.fig,'pointer','arrow');
-    return
-end
-
-handles.current = 1;                      % current file beeing displayed
-% Display first file number, total number of files
-set(handles.edit_current,'String',handles.current);
-set(handles.edit_numfields,'String',handles.N);
-
-% Initialize color, number of colors for contours
-handles.numcolors = 10;                   % default number of colors
-set(handles.edit_numcolors,'String', handles.numcolors);
-
-% Cat the mean values at the end
-handles.u(:,:,handles.N+1) = mean(handles.u(:,:,1:handles.N),3);
-handles.v(:,:,handles.N+1) = mean(handles.v(:,:,1:handles.N),3);
-if handles.state3d
-    handles.w(:,:,handles.N+1) = mean(handles.w(:,:,1:handles.N),3);
-    handles.wf = zeros(rows,cols,handles.N);
-    for i = 1:handles.N
-        handles.wf(:,:,i) = handles.w(:,:,i) - handles.w(:,:,handles.N+1);
-    end
-end
-
-% handles.dx = abs(handles.x(1,1) - handles.x(1,2));
-% handles.dy = abs(handles.y(1,1) - handles.y(2,1));
-% Bug, fixed at 16.06 after the email of Hai
-handles.dx = handles.x(1,2) - handles.x(1,1);
-handles.dy = handles.y(2,1) - handles.y(1,1);
-
-% Preallocate memory and calculate all the necessary quantities
-% Fluctuations (last one is zero, we do not need it)
-handles.uf = zeros(rows,cols,handles.N);
-handles.vf = zeros(rows,cols,handles.N);
-%
-for i = 1:handles.N
-    handles.vf(:,:,i) = handles.v(:,:,i) - handles.v(:,:,handles.N+1);
-end
-%
-for i = 1:handles.N
-    handles.uf(:,:,i) = handles.u(:,:,i) - handles.u(:,:,handles.N+1);
-end
-
-% Derivatives
-handles.dudx = zeros(rows,cols,handles.N+1);
-handles.dudy = zeros(rows,cols,handles.N+1);
-handles.dvdx = zeros(rows,cols,handles.N+1);
-handles.dvdy = zeros(rows,cols,handles.N+1);
-%
-for i = 1:handles.N+1
-    [handles.dudx(:,:,i),handles.dudy(:,:,i)] = ...
-        lsgradient(handles.u(:,:,i),handles.dx, handles.dy);
-    [handles.dvdx(:,:,i),handles.dvdy(:,:,i)] = ...
-        lsgradient(handles.v(:,:,i),handles.dx, handles.dy);
-end
-
-% Possible future development, eliminating strong gradients
-% on the borders
-% handles.dudx(1:2,:,:)       = NaN;
-% handles.dudx(end-1:end,:,:) = NaN;
-% handles.dudx(:,1:2,:)       = NaN;
-% handles.dudx(:,end-1:end,:) = NaN;
-
-%
-% More defaults
-handles.arrow_scale = 1;                % default scale
-set(handles.edit_arrow_size,'String',handles.arrow_scale);
-
-% Default situation, instantaneous, not Ensemble, not fluctuations
-set(handles.checkbox_ensemble,'Value',0);
-set(handles.checkbox_fluct,'Value',0);
-
-% No colors, no labels
-handles.color = 0;                % display colored / black figure
-handles.alltodisp = 0;            % default all_to display is unset
-handles.allfields = 0;
-handles.labelit = 0;              % label for contour
-handles.colorbar_flag = 0;
-handles.current_index = handles.current;
-handles.distribOn=0;
-handles.rowlock=0; handles.columnlock=0;
-handles.previousSel=[];
-
-% These are future values, for the TimeBox
-handles.i=[];
-handles.j=[];
-handles.PointsH=[];
-handles.Allselected=0;
-
-% handles.dx = handles.x(1,2) - handles.x(1,1);
-% handles.dy = handles.y(2,1) - handles.y(1,1);
-
-% abs() is added on Dec.13,2004. by Alex on IHW_Liberzon computer
-%
-handles.gridX = abs(handles.x(1,2) - handles.x(1,1));
-handles.gridY = abs(handles.y(1,1) - handles.y(2,1));
-
-% Show some and hide some controls
-set(handles.popupmenu_quantity,'Visible','on');
-set(handles.popupmenu_quantity,'Value',1);
-set(handles.popupmenu_contour_type,'Visible','on');
-set(handles.popupmenu_contour_type,'Value',1);
-set(handles.popupmenu_eachfield,'Visible','on');
-set(handles.popupmenu_eachfield,'Value',1);
-
-% Some only part of them in Enable mode
-set(handles.checkbox_arrow,'Enable','On');
-set(handles.edit_arrow_size,'Enable','On');
-set(handles.checkbox_fluct,'Enable','On');
-set(handles.checkbox_ensemble,'Enable','On');
-set(handles.popupmenu_quantity,'Enable','On');
-set(handles.pushbutton_previous,'Enable','On');
-set(handles.pushbutton_next,'Enable','On');
-set(handles.edit_current,'Enable','On');
-set(handles.pushbutton_animate,'Enable','On');
-set(handles.pushbutton_save_movie,'Enable','on');
-% set(handles.pushbutton_stats,'Enable','on');
-
-
-% Properties
-set(handles.popupmenu_quantity,'String',handles.inst_list);
-handles.property = [];
-
-handles.arrow_ctrls=[handles.edit_arrow_size,handles.checkbox_arrow,handles.checkbox_arrow_color];
-
-set(handles.pushbutton_spatial,'Enable','on');
-set(handles.pushbutton_select,'Enable','on');
-
-set(handles.fig,'pointer','arrow');
-
-% added on 10.04.06 for R12SP3 version
-handles.axpos = get(handles.axes_main,'Position');
-
-% Update all handles structure
-guidata(handles.fig,handles);
-
-% Make default plot
-update_gui(handles.fig,[],handles);
-return
 
 % ---------------------------------------------------------------------
 % function [filenames] = ReadTXTDir(dirname,data)
@@ -3024,3 +2348,406 @@ else
 end;
 
 guidata(handles.fig,handles);
+
+function handles = loadvec(handles)
+% loadVec reads the data from the *.VEC files
+% created by Insight 3G software
+% the files include:
+% header
+% data in tab separated columns
+% the actual reader is the vecread()
+%
+
+
+try
+    gui_files = uipickfiles('filespec','*.vec');
+    handles.dt = 1;
+    handles.state3d = 0;
+    handles.scale = 1;
+    [gui_path,~,~] = fileparts(gui_files{1});
+    
+    
+    handles.N = length(gui_files); % number of files selected
+    if  handles.N > 0
+        handles.files = gui_files;
+        handles.path = gui_path;
+        set(handles.fig,'pointer','watch');
+    else
+        return
+    end
+    
+    
+    % we had the 3D state in one of the old versions, but it's abandoned
+    % we need to revive it soon
+    %
+    %     switch handles.state3d
+    %         case 1
+    %             if ~isempty(findstr(handles.files{1},'v3d'))
+    %                 [handles.xUnits,handles.velUnits,d] = ...
+    %                     svecread(fullfile(handles.path,handles.files{1}));
+    %                 [rows,cols,~] = size(d);
+    %                 [handles.u,handles.v,handles.w] = ...
+    %                     deal(zeros(rows,cols,handles.N+1)); % 11.04.04, Alex
+    %                 % Bug fixes June 26, 2004, for the first release.
+    %                 handles.x = d(:,:,1);
+    %                 handles.y = d(:,:,2);
+    %                 handles.z = d(:,:,3);
+    %                 handles.u(:,:,1) = d(:,:,4);
+    %                 handles.v(:,:,1) = d(:,:,5);
+    %                 handles.w(:,:,1) = d(:,:,6);
+    %                 %                 handles.x = d(:,:,1)*handles.scale/1000;
+    %                 %                 handles.y = d(:,:,2)*handles.scale/1000;
+    %                 %                 handles.z = d(:,:,3)*handles.scale/1000;
+    %                 %                 handles.u(:,:,1) = d(:,:,4)*handles.scale/1000/handles.dt;
+    %                 %                 handles.v(:,:,1) = d(:,:,5)*handles.scale/1000/handles.dt;
+    %                 %                 handles.w(:,:,1) = d(:,:,6)*handles.scale/1000/handles.dt;
+    %
+    %                 for i = 2:handles.N
+    %                     d = svecread([handles.path,filesep,handles.files{i}],1,8);
+    %                     % handles.u(:,:,i) = d(:,:,4)*handles.scale/1000/handles.dt;
+    %                     % handles.v(:,:,i) = d(:,:,5)*handles.scale/1000/handles.dt;
+    %                     % handles.w(:,:,i) = d(:,:,6)*handles.scale/1000/handles.dt;
+    %                     handles.u(:,:,i) = d(:,:,4);
+    %                     handles.v(:,:,i) = d(:,:,5);
+    %                     handles.w(:,:,i) = d(:,:,6);
+    %                 end
+    %                 clear d
+    %             end
+    %         case 0
+    
+    %             if ~isempty(findstr(lower(handles.files{1}),'vec'))            % process .vec files
+    
+    
+    
+    
+    % read the first file, determine the size
+    
+    [handles.xUnits,handles.velUnits,d] = vecread(handles.files{1});
+    [rows,cols,~] = size(d);
+    [handles.u,handles.v] = deal(zeros(rows,cols,handles.N+1)); % 11.04.04, Alex
+    handles.x           = d(:,:,1);
+    handles.y           = d(:,:,2);
+    handles.u(:,:,1)    = d(:,:,3);
+    handles.v(:,:,1)    = d(:,:,4);
+    % Bug fixes, June 26, 2004
+    %                 handles.x           = d(:,:,1)*handles.scale/1000;
+    %                 handles.y           = d(:,:,2)*handles.scale/1000;
+    %                 handles.u(:,:,1)    = d(:,:,3)*handles.scale/1000/handles.dt;
+    %                 handles.v(:,:,1)    = d(:,:,4)*handles.scale/1000/handles.dt;
+    %
+    for i = 2:handles.N
+        % d = vecread([handles.path,filesep,handles.files{i}],1,5);
+        d = vecread(handles.files{i},1,5);
+        %                     handles.u(:,:,i) = d(:,:,3)*handles.scale/1000/handles.dt;
+        %                     handles.v(:,:,i) = d(:,:,4)*handles.scale/1000/handles.dt;
+        handles.u(:,:,i) = d(:,:,3);
+        handles.v(:,:,i) = d(:,:,4);
+    end
+    clear d
+    
+    % end  switch that's commented out
+catch ME
+    % errordlg('Something wrong with vector files');
+    errordlg(ME.message)
+    set(handles.fig,'pointer','arrow');
+    return
+end
+
+% --------------------------------------------------------------------
+function loadtxt(handles)
+% hObject    handle to loadTXT (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+global orighandles;
+if isfield(handles,'restoreorig')
+    handles = orighandles;
+end
+
+handles.restoreorig = 1;
+handles.state3d = 0;
+handles.dt  = 1;
+
+
+try
+    % [gui_files,gui_path] = uigetfile('*.txt','Select the location and the type of the TXT file');
+    handles.files = uipickfiles; % April 2, 2010, AL
+    
+    
+    handles.N = length(handles.files); % number of files selected
+    if  handles.N > 0
+        [handles.path,~,~] = fileparts(handles.files{1});
+        set(handles.fig,'pointer','watch');
+    else
+        return
+    end
+    
+    %%%%%%%%%%%%%%%%
+    
+    % with the new TXT files, sometimes the user tries to use our
+    % old TXT format. if it fails, then use the other loading machine
+    
+    
+    fid = fopen(handles.files{1},'r');
+    firstline = fgetl(fid);
+    if isnan(str2double(strtok(firstline)))
+        error('Different TXT format, try using VEC loader');
+    else
+        d = load(handles.files{1});
+    end
+    
+    
+    
+    
+    
+    % we try to change the old way of treating x,y for the 2D grid
+    % to the one we found for the TXT files of new OpenPIV-C++ see loadvec
+    
+    
+    
+    %{
+    x = d(:,1);
+    x = x(x~=0);
+    unX = unique(x);
+    
+    minX = min(unX);
+    maxX = max(unX);
+    
+    dX = ceil((maxX-minX)/(length(unX)-1));
+    
+    y = d(:,2);
+    y = y(y~=0);
+    unY = unique(y);
+    
+    minY = min(unY);
+    maxY = max(unY);
+    dY = ceil((maxY-minY)/(length(unY)-1));
+    
+    [handles.x,handles.y] = meshgrid(minX:dX:maxX,minY:dY:maxY);
+    [rows,cols] = size(handles.x);
+    
+    
+    [handles.u,handles.v] = deal(zeros(rows,cols,handles.N+1)); % 11.04.04, Alex
+    
+    hwaitbar = waitbar(0,'Please wait...');
+    
+    
+    
+    tmp = d;
+    tmp(tmp(:,1) == 0) = [];
+    tmp(tmp(:,2) == 0) = [];
+    % y = tmp(:,2);
+    %  x = tmp(:,1);
+    [m,n] = deal(zeros(length(tmp(:,1))));
+    for j = 1:length(tmp(:,1))
+        [m(j),n(j)] = find(handles.x == tmp(j,1) & handles.y == tmp(j,2));
+    end
+    
+    
+    
+    for i = 1:handles.N
+        waitbar(i/handles.N,hwaitbar)
+        % x = d(:,1,i);
+        % tmp = d(x~=0,:,i);
+        % presumably cleans bug values with zero in x and y - not clear
+        % yet, 23.3.11, Alex
+        
+        tmp = load(handles.files{i});
+        tmp(tmp(:,1) == 0) = [];
+        tmp(tmp(:,2) == 0) = [];
+        
+        for j = 1:length(tmp(:,1))
+            handles.u(m(j),n(j),i) = tmp(j,3);
+            handles.v(m(j),n(j),i) = tmp(j,4);
+        end
+    end
+    
+    
+    %}
+    
+    hwaitbar = waitbar(0,'Please wait...');
+    
+    % we need to know the reshape size:
+    rows = find(diff(d(:,1))<0,1);
+    cols = length(d(:,1))/rows;
+    
+    
+    [handles.u,handles.v] = deal(zeros(rows,cols,handles.N+1));
+    handles.x           = reshape(d(:,1),rows,cols);
+    handles.y           = reshape(d(:,2),rows,cols);
+    handles.u(:,:,1)    = reshape(d(:,3),rows,cols);
+    handles.v(:,:,1)    = reshape(d(:,4),rows,cols);
+    
+    orderX = order(min(d(:,1))); % added the option for small
+    
+    % values. next 'ceil' creates a bug if x,y are in meters for millimeter
+    % size fields
+    %
+    if orderX == -3 || orderX == -4,
+        handles.xUnits = 'mm';
+        handles.velUnits = 'm/s';
+    elseif orderX >= 0
+        handles.xUnits = 'pix';
+        handles.velUnits = 'pix/dt';
+    end
+    
+    for i = 2:handles.N
+        % d = dlmread(handles.files{i},'',1,0);
+        d = load(handles.files{i});
+        handles.u(:,:,i)    = reshape(d(:,3),rows,cols);
+        handles.v(:,:,i)    = reshape(d(:,4),rows,cols);
+    end
+    clear d
+    
+    
+    
+    
+    close(hwaitbar)
+    %     handles.xUnits = 'pix';
+    %     handles.velUnits = 'pix/dt';
+    
+    clear d tmp x y
+    
+catch ME
+    errordlg(ME.message); %'Something wrong with TXT files');
+    set(handles.fig,'pointer','arrow');
+    return
+end
+
+handles.current = 1;                      % current file beeing displayed
+% Display first file number, total number of files
+set(handles.edit_current,'String',handles.current);
+set(handles.edit_numfields,'String',handles.N);
+
+% Initialize color, number of colors for contours
+handles.numcolors = 10;                   % default number of colors
+set(handles.edit_numcolors,'String', handles.numcolors);
+
+% Cat the mean values at the end
+handles.u(:,:,handles.N+1) = mean(handles.u(:,:,1:handles.N),3);
+handles.v(:,:,handles.N+1) = mean(handles.v(:,:,1:handles.N),3);
+if handles.state3d
+    handles.w(:,:,handles.N+1) = mean(handles.w(:,:,1:handles.N),3);
+    handles.wf = zeros(rows,cols,handles.N);
+    for i = 1:handles.N
+        handles.wf(:,:,i) = handles.w(:,:,i) - handles.w(:,:,handles.N+1);
+    end
+end
+
+% handles.dx = abs(handles.x(1,1) - handles.x(1,2));
+% handles.dy = abs(handles.y(1,1) - handles.y(2,1));
+% Bug, fixed at 16.06 after the email of Hai
+handles.dx = handles.x(1,2) - handles.x(1,1);
+handles.dy = handles.y(2,1) - handles.y(1,1);
+
+% Preallocate memory and calculate all the necessary quantities
+% Fluctuations (last one is zero, we do not need it)
+handles.uf = zeros(rows,cols,handles.N);
+handles.vf = zeros(rows,cols,handles.N);
+%
+for i = 1:handles.N
+    handles.vf(:,:,i) = handles.v(:,:,i) - handles.v(:,:,handles.N+1);
+end
+%
+for i = 1:handles.N
+    handles.uf(:,:,i) = handles.u(:,:,i) - handles.u(:,:,handles.N+1);
+end
+
+% Derivatives
+handles.dudx = zeros(rows,cols,handles.N+1);
+handles.dudy = zeros(rows,cols,handles.N+1);
+handles.dvdx = zeros(rows,cols,handles.N+1);
+handles.dvdy = zeros(rows,cols,handles.N+1);
+%
+for i = 1:handles.N+1
+    [handles.dudx(:,:,i),handles.dudy(:,:,i)] = ...
+        lsgradient(handles.u(:,:,i),handles.dx, handles.dy);
+    [handles.dvdx(:,:,i),handles.dvdy(:,:,i)] = ...
+        lsgradient(handles.v(:,:,i),handles.dx, handles.dy);
+end
+
+% Possible future development, eliminating strong gradients
+% on the borders
+% handles.dudx(1:2,:,:)       = NaN;
+% handles.dudx(end-1:end,:,:) = NaN;
+% handles.dudx(:,1:2,:)       = NaN;
+% handles.dudx(:,end-1:end,:) = NaN;
+
+%
+% More defaults
+handles.arrow_scale = 1;                % default scale
+set(handles.edit_arrow_size,'String',handles.arrow_scale);
+
+% Default situation, instantaneous, not Ensemble, not fluctuations
+set(handles.checkbox_ensemble,'Value',0);
+set(handles.checkbox_fluct,'Value',0);
+
+% No colors, no labels
+handles.color = 0;                % display colored / black figure
+handles.alltodisp = 0;            % default all_to display is unset
+handles.allfields = 0;
+handles.labelit = 0;              % label for contour
+handles.colorbar_flag = 0;
+handles.current_index = handles.current;
+handles.distribOn=0;
+handles.rowlock=0; handles.columnlock=0;
+handles.previousSel=[];
+
+% These are future values, for the TimeBox
+handles.i=[];
+handles.j=[];
+handles.PointsH=[];
+handles.Allselected=0;
+
+% handles.dx = handles.x(1,2) - handles.x(1,1);
+% handles.dy = handles.y(2,1) - handles.y(1,1);
+
+% abs() is added on Dec.13,2004. by Alex on IHW_Liberzon computer
+%
+handles.gridX = abs(handles.x(1,2) - handles.x(1,1));
+handles.gridY = abs(handles.y(1,1) - handles.y(2,1));
+
+% Show some and hide some controls
+set(handles.popupmenu_quantity,'Visible','on');
+set(handles.popupmenu_quantity,'Value',1);
+set(handles.popupmenu_contour_type,'Visible','on');
+set(handles.popupmenu_contour_type,'Value',1);
+set(handles.popupmenu_eachfield,'Visible','on');
+set(handles.popupmenu_eachfield,'Value',1);
+
+% Some only part of them in Enable mode
+set(handles.checkbox_arrow,'Enable','On');
+set(handles.edit_arrow_size,'Enable','On');
+set(handles.checkbox_fluct,'Enable','On');
+set(handles.checkbox_ensemble,'Enable','On');
+set(handles.popupmenu_quantity,'Enable','On');
+set(handles.pushbutton_previous,'Enable','On');
+set(handles.pushbutton_next,'Enable','On');
+set(handles.edit_current,'Enable','On');
+set(handles.pushbutton_animate,'Enable','On');
+set(handles.pushbutton_save_movie,'Enable','on');
+% set(handles.pushbutton_stats,'Enable','on');
+
+
+% Properties
+set(handles.popupmenu_quantity,'String',handles.inst_list);
+handles.property = [];
+
+handles.arrow_ctrls=[handles.edit_arrow_size,handles.checkbox_arrow,handles.checkbox_arrow_color];
+
+set(handles.pushbutton_spatial,'Enable','on');
+set(handles.pushbutton_select,'Enable','on');
+
+set(handles.fig,'pointer','arrow');
+
+% added on 10.04.06 for R12SP3 version
+handles.axpos = get(handles.axes_main,'Position');
+
+% Update all handles structure
+guidata(handles.fig,handles);
+
+% Make default plot
+update_gui(handles.fig,[],handles);
+
+
+
