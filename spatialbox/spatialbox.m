@@ -5,10 +5,11 @@
 % See the file license.txt for copying permission.
 
 % Changes log:
-% Last modified: 13-12-2004
+% Last modified: 29-Aug-2013
 % by Alex Liberzon,
 % ydir is now reversed in update_gui for the Insight data. Check for the
 % OpenPIV data
+% Git is taking care of the changes and log of changes. 
 % - abs() is added to gridX and gridY - both have to be removed since
 % it just doubles the handles.dx and handles.dy
 
@@ -2360,13 +2361,11 @@ function handles = loadvec(handles)
 
 
 try
-    gui_files = uipickfiles('filespec','*.vec');
+
     handles.dt = 1;
     handles.state3d = 0;
     handles.scale = 1;
-    [gui_path,~,~] = fileparts(gui_files{1});
-    
-    
+       
     handles.N = length(gui_files); % number of files selected
     if  handles.N > 0
         handles.files = gui_files;
@@ -2750,4 +2749,8 @@ guidata(handles.fig,handles);
 update_gui(handles.fig,[],handles);
 
 
-
+% --------------------------------------------------------------------
+function File_Callback(hObject, eventdata, handles)
+% hObject    handle to File (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
