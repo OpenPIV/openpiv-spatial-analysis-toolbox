@@ -1419,7 +1419,11 @@ set(handles.pushbutton_select,'Enable','on');
 set(handles.fig,'pointer','arrow');
 
 % added on 10.04.06 for R12SP3 version
-handles.axpos = get(handles.axes_main,'Position');
+if isfield(handles,'axes_main') 
+    % Sep 3, 2013 found a new bug that handles.axes_main doesn't exist
+    handles.axpos = get(handles.axes_main,'Position');
+end
+
 
 % Update all handles structure
 guidata(handles.fig,handles);
@@ -1502,7 +1506,6 @@ set(handles.rowpushbutton,'Enable','off');
 set(handles.pushbutton_selectreg,'Enable','off');
 set(handles.colpushbutton,'Enable','off');
 set(handles.pushbutton_selectall,'Enable','off');
-
 
 
 set(handles.axes_main,'NextPlot','Add');

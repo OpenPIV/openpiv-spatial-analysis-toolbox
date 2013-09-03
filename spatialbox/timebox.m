@@ -895,14 +895,14 @@ lags = [-(na-1):na-1];
 
 
 % --------------------------------------------------------------------
-function export2csv_Callback
+function export2csv_Callback(varargin)
 % hObject    handle to export2csv (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 
 % --------------------------------------------------------------------
-function export2matlab_Callback
+function export2matlab_Callback(varargin)
 % hObject    handle to export2matlab (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
