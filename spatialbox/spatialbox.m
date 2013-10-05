@@ -2936,7 +2936,7 @@ guidata(handles.fig,handles);
 
 
 % --------------------------------------------------------------------
-function export2MAT_Callback(~, ~, ~)
+function export2MAT_Callback(~, ~, handles) %#ok<INUSD>
 % hObject    handle to export2MAT (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
