@@ -1,8 +1,14 @@
 function [v] = loadvec_Insight(dirname)
 %
-% loadvec_Insight uses CIL Flow vecread (tm) file
+% LOADVEC_INSIGHT(DIRNAME) 
+% uses CIL Flow vecread (tm) file
 % to convert Insight generated VEC files into PIVMAT
-% stucture (see LOADVEC)
+% stucture (see LOADVEC).
+% Inputs:
+%       DIRNAME = full path to the directory containg the vectors files
+% 
+% The function is not yet designed to deal with the list of the files
+% - this part needs some improvements. 
 %
 % See also: HELP LOADVEC
 %
