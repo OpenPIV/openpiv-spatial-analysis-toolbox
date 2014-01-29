@@ -2093,9 +2093,6 @@ if ~exportedMat
     %
     for i = 1:handles.N
         handles.vf(:,:,i) = handles.v(:,:,i) - handles.v(:,:,handles.N+1);
-    end
-    %
-    for i = 1:handles.N
         handles.uf(:,:,i) = handles.u(:,:,i) - handles.u(:,:,handles.N+1);
     end
     
