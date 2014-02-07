@@ -1,0 +1,507 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Getting Started with Spatial &amp; Time Analysis Toolbox &mdash; OpenPIV Spatial and Time Analysis Toolbox 0.01 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.01',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="OpenPIV Spatial and Time Analysis Toolbox 0.01 documentation" href="index.html" />
+    <link rel="prev" title="Welcome to OpenPIV Spatial and Time Analysis Toolbox’s documentation!" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="index.html" title="Welcome to OpenPIV Spatial and Time Analysis Toolbox’s documentation!"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">OpenPIV Spatial and Time Analysis Toolbox 0.01 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="line-block">
+<div class="line"><br /></div>
+<div class="line"><br /></div>
+</div>
+<p><img alt="image0" src="_images/image002.png" /></p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="section" id="getting-started-with-spatial-time-analysis-toolbox">
+<h1>Getting Started with Spatial &amp; Time Analysis Toolbox<a class="headerlink" href="#getting-started-with-spatial-time-analysis-toolbox" title="Permalink to this headline">¶</a></h1>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>Installation:</p>
+<p>1.&nbsp;&nbsp;&nbsp;&nbsp; Unpack the spatialbox.zip into directory
+$matlabroot$\work\spatialbox (recommended), where $matlabroot$ is the
+path of the Matlab<a class="reference external" href="#_ftn1">[1]</a> installation path.</p>
+<p>Execution</p>
+<p>a) Run the RUN.BAT file by double-clicking its name in the Windows XP
+explorer window, or manually by: Start à Run à type: run.bat and press
+Enter.</p>
+<p>Otherwise, if the user wishes to work with Matlab and start the toolbox
+from the Matlab desktop:</p>
+<p>b) Start Matlab by matlab.exe or Start à Programs and select Matlab
+<img alt="image1" src="_images/image004.png" /></p>
+<p>Note: It is possible to run the toolbox without loading Java Virtual
+Machine (JVM) environment of Matlab. The memory consumption of Matlab
+without JVM is much lower and it is recommended if the user encounters
+Out of Memory errors or slow performance. In order to run Matlab in the
+‘text mode’ change the command line of the icon to matlab –nojvm or
+Start à Run à matlab -nojvm</p>
+<p>Change the path to the directory with the toolbox, or add the toolbox’s
+directory to the Matlab path</p>
+<p>a)&nbsp;Change working directory:</p>
+<div class="highlight-python"><pre>&gt;&gt; cd c:\\matlab6p5\\work\\spatialbox\ ****</pre>
+</div>
+<p>or</p>
+<ol class="loweralpha" start="2">
+<li><p class="first">Add path by:</p>
+<div class="highlight-python"><pre>&gt;&gt; addpath c:\\matlab6p5\\work\\spatialbox</pre>
+</div>
+</li>
+</ol>
+<p>Check that Matlab recognizes the toolbox by typing</p>
+<p>&gt;&gt; help spatialbox</p>
+<p>If the output does not look like:</p>
+<p>&nbsp; SPATIALBOX Application M-file for spatialbox.fig</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; FIG = SPATIALBOX launch spatialbox GUI.</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; SPATIALBOX(&#8216;callback_name&#8217;, ...) invoke the named callback.</p>
+<p>Then please, check the path or repeat the above steps.</p>
+<p>It is also possible to add the Spatial Toolbox directory to the Matlab
+path with GUI (only under JVM environment) by:</p>
+<p><img alt="image2" src="_images/image006.png" /></p>
+<p>and then</p>
+<p><img alt="image3" src="_images/image008.png" /></p>
+<p>Getting started</p>
+<p>If the main window (Figure 1) is not on the screen, run the toolbox by
+&gt;&gt; spatialbox from the Matlab desktop.</p>
+<p><img alt="image4" src="_images/image010.png" /></p>
+<p>Figure 1: Spatial toolbox GUI - main window</p>
+<p>At the top-right corner there are Menu (File, Window) and the toolbar
+icon (Load files), in the center there is a main axes and on the
+right-hand side there are GUI controls.</p>
+<p>The Spatial Toolbox operation begins with loading the data. The data
+could be loaded as Insight [2] <tt class="docutils literal"><span class="pre">\*.vec</span></tt> or <tt class="docutils literal"><span class="pre">\*.v3d</span></tt>
+files, by <tt class="docutils literal"><span class="pre">File</span> <span class="pre">-&gt;</span> <span class="pre">Load</span> <span class="pre">Vector</span> <span class="pre">File</span></tt>.</p>
+<p>The user can press the button shown below:</p>
+<p><img alt="image5" src="_images/image012.png" /></p>
+<p>and then select the folder that
+includes the data files from the window, shown in Figure 2, or type the
+name of the folder instead of the default path. There is an option to
+double-click the <tt class="docutils literal"><span class="pre">..</span></tt> in the list of files box, or double click the name
+of the directory within the list in order to get the files in the
+subdirectory. <tt class="docutils literal"><span class="pre">\*.vec</span></tt> files are listed as a default, and the user can
+check checkbox ‘switch to <tt class="docutils literal"><span class="pre">.v3d</span></tt> in the&nbsp; in order to see the list of
+<tt class="docutils literal"><span class="pre">\*.v3d</span></tt> files.</p>
+<p>When the list of files is shown (see Figure 3), user might use on the
+selection options:</p>
+<ol class="arabic simple">
+<li>If one file is selected, when the Load button is pressed, all the
+files from the selected file and up to the last file, listed in the
+box, will be loaded into Matlab</li>
+<li>If two files are selected, with CTRL button and mouse clicks, then
+all the files between these two are loaded.</li>
+<li>If user selects manually more than 2 files, with CTRL and clicks, or
+with SHIFT and extending the selection, then only the selected files
+are loaded.</li>
+</ol>
+<p><img alt="image6" src="_images/image014.png" /></p>
+<p>Figure 2: List of the directories to choose the path of the VEC or V3D
+files</p>
+<p><img alt="image7" src="_images/image016.png" /></p>
+<p>Figure 3: Selection of the files from the listbox. One, two with CTRL,
+or many with CTRL or SHIFT options are possible. Press LOAD button to
+finish the selection.</p>
+<p>Press Load button to finish the selection. The Spatial Toolbox reads the
+vector files, initializes the toolbox default variables and calculates
+several flow quantities. This part might take from several seconds to a
+few minutes, depending on the length of the selected series and the size
+of each vector map<a class="reference external" href="#_ftn3">[3]</a>.</p>
+<p>This part is re-implemented (since the last release of the Spatial
+Toolbox on April 16.), by using uigetdir function.</p>
+<p>Note: for the Spatial and Time Analysis Toolbox, the order of the
+selected files is not important, the user might pick the last file first
+and after that the first file. However, during the loading procedure,
+the files will be automatically sorted in the ascending order of their
+file names. This default sorting procedure is due to the original goal
+of the toolbox is Time Series Analysis, where Time Series is presumably
+recorded with PIV in some kind of sequence.</p>
+<div class="section" id="operating-instructions">
+<h2>Operating Instructions<a class="headerlink" href="#operating-instructions" title="Permalink to this headline">¶</a></h2>
+<p>When at least one vector file is selected, the default window looks like
+in the following <strong>Error! Reference source not found.</strong>.</p>
+<p><img alt="image8" src="_images/image018.png" /></p>
+<p>Figure 4: Default window, arrows, GUI controls, main axes.</p>
+</div>
+</div>
+<div class="section" id="navigation">
+<h1>Navigation<a class="headerlink" href="#navigation" title="Permalink to this headline">¶</a></h1>
+<p>&nbsp;- Navigation is done by the next/previous buttons, which displays next/previous maps accordingly</p>
+<ul class="simple">
+<li>To jump to specific map, enter number of the map in edit box, followed by Enter:</li>
+</ul>
+<p><img alt="image9" src="_images/image020.png" /></p>
+<div class="section" id="available-options">
+<h2>Available options:<a class="headerlink" href="#available-options" title="Permalink to this headline">¶</a></h2>
+<p>The user might choose between one of the large set of various
+combinations to present its data: arrows in black or in color. The color
+of arrows could represent any one of the available quantities for that
+particular mode. The arrows could be on top of the contour map of the
+selected quantity, and contour could be as color patterns, bounded, or
+unbounded (smooth view), color or black contour lines. Below, in the
+working example, we show some of the combinations.</p>
+</div>
+<div class="section" id="controls">
+<h2>Controls:<a class="headerlink" href="#controls" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+<div class="section" id="arrows">
+<h1>Arrows<a class="headerlink" href="#arrows" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><tt class="docutils literal"><span class="pre">On</span> <span class="pre">/Off</span></tt> – shows / hides arrows</li>
+<li><tt class="docutils literal"><span class="pre">Color</span> <span class="pre">/Black</span></tt> – if turned on, arrows will be colored according to the current quantity</li>
+</ul>
+</div>
+<div class="section" id="contour-quantity">
+<h1>Contour Quantity<a class="headerlink" href="#contour-quantity" title="Permalink to this headline">¶</a></h1>
+<p>The user can choose the quantity that will be displayed on the screen.
+There are four main sets of quantities (we can call them 4 modes). The
+switch between the modes is done with two checkboxes <img alt="image10" src="_images/image022.png" />:</p>
+<p>1.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>Instantaneous</strong> mode (not one of the checkboxes is
+checked on): the list of quantities is:</p>
+<p><img alt="image11" src="_images/image024.png" /></p>
+<p>2.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>Ensemble averaged</strong> mode (only Ensemble checkbox is
+checked on), ensemble averages of the instantaneous quantities, the list
+is:</p>
+<p><img alt="image12" src="_images/image026.png" /></p>
+<p>3.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>Fluctuations</strong> mode (only the Fluctuations checkbox is
+checked on)<img alt="image13" src="_images/image028.png" /></p>
+<p>4.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>Turbulent quantities</strong> mode (both checkboxes are
+checked on), the list is:</p>
+<p><img alt="image14" src="_images/image030.png" /></p>
+<p>=</p>
+</div>
+<div class="section" id="contour-type">
+<h1>Contour type<a class="headerlink" href="#contour-type" title="Permalink to this headline">¶</a></h1>
+<p>Available contour types are:</p>
+<p>-&nbsp;&nbsp;&nbsp; <tt class="docutils literal"><span class="pre">Flood</span></tt> - smooth color patches, no sharp boundaries
+-&nbsp;&nbsp;&nbsp; <tt class="docutils literal"><span class="pre">Color</span> <span class="pre">Line``&nbsp;</span> <span class="pre">-</span> <span class="pre">only</span> <span class="pre">color</span> <span class="pre">boundaries,</span> <span class="pre">according</span> <span class="pre">to</span> <span class="pre">the</span> <span class="pre">color</span> <span class="pre">map</span> <span class="pre">of</span> <span class="pre">the</span> <span class="pre">selected</span> <span class="pre">quantity.</span>
+<span class="pre">-&nbsp;&nbsp;&nbsp;</span> <span class="pre">``Flood</span> <span class="pre">+</span> <span class="pre">Line</span></tt> – color patches, with sharp boundaries
+- &nbsp;&nbsp;&nbsp; <tt class="docutils literal"><span class="pre">Black</span> <span class="pre">Line</span></tt> – only boundaries of the contours</p>
+<p>There are several examples given below to show some of the available
+arrow and contour combinations:</p>
+<p><img alt="image15" src="_images/image032.png" /></p>
+<p>Figure 5: Instantaneous velocity field (arrows) and the instantaneous
+vorticity field in color-line contour mode. Color bar is added and the
+number of contour levels is set to be 25.</p>
+<p>Control of contour levels (i.e. colors)</p>
+<p>The user can manually enter number of contour levels (or number of
+colors), by entering the desired number in the edit box:</p>
+<p><img alt="image16" src="_images/image034.png" /></p>
+<p>and pressing Enter.</p>
+<p>The number of colors (default or manually set) defines the number of
+contour levels of the selected quantity, but in one of four modes
+(contour modes):</p>
+<p>-&nbsp;&nbsp;&nbsp;&nbsp; Each Field – the contour is automatically updated to each
+presented map limits (min and max) and distributed evenly into number of
+contour levels (i.e. number of colors)</p>
+<p>-&nbsp;&nbsp;&nbsp;&nbsp; All to Display – the currently presented map defines the contour
+levels for all forthcoming maps, unless other option is selected. If the
+user changes the quantity, the limits are updated, but still will be
+constant for all forthcoming views.</p>
+<p>-&nbsp;&nbsp;&nbsp;&nbsp; All Fields – the contour levels are defined by the maximum and
+minimum values of the selected quantity from the whole selected dataset.
+This is very powerful option, that allows one to compare the values
+visually, when not even one value will be out of the defined color set
+(which is possible to happen in manual or All to Display modes).
+However, one should realize that in order to determine the absolute
+maximum and minimum values, the whole dataset has to be calculated at
+least once. For example, All Fields of the vorticity demands the
+calculation of gradients in both directions of the selected dataset
+(which could be really long for the Time-Resolved PIV).</p>
+<p>Manual - the user can select the maximum and minimum level of the color
+to be shown, the selection could be symmetric by entering the same
+positive and negative values or anti-symmetric, if different values are
+used.</p>
+<p><img alt="image17" src="_images/image036.png" /></p>
+<p>Figure 6: Instantaneous velocity field (longer arrows, set to 3), Flood
+contour type of the rate-of-strain component, number of contour levels
+set to 3 to emphasize strong positive and negative regions.</p>
+<p>Animation</p>
+<p>The user can run the animation of the successive maps, with all the
+visualization properties that were selected before, by pressing
+Animation button. The first map is the current map (that could be
+manually entered in the edit box) and pressing again the Animation
+button stops the animation at any map. Otherwise the animation will
+continue up to the last map.</p>
+<p>During the animation, the movie is NOT stored in the memory. The user
+should operate Movie button in the same way as Animation button, but in
+addition, the user will be prompted to type in the file name of the AVI
+file. The Windows AVI video file&nbsp; (uncompressed, default
+frame-per-second rate of 15 fps) is saved, when the last map is reached,
+or the Movie button is pressed again (i.e. released).</p>
+<p><img alt="image18" src="_images/image038.png" /></p>
+<p>Figure 7: Ensemble averaged velocity field, shown by arrows. The color
+of the arrows and the sharp boundaries are of the average vorticity
+field, the number of contour levels is set to 5, and the color is
+distributed symmetrically by manual set of contour levels between –0.04
+and 0.04 [1/sec].</p>
+<ul class="simple">
+<li></li>
+</ul>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="selecting-region-of-interest-for-time-toolbox-or-distribution-analysis">
+<h1>Selecting region of interest for Time Toolbox or Distribution analysis<a class="headerlink" href="#selecting-region-of-interest-for-time-toolbox-or-distribution-analysis" title="Permalink to this headline">¶</a></h1>
+<p><strong>1)</strong> In order to select data, move to ‘select’ tab, where selection
+tools are placed:</p>
+<p><img alt="image19" src="_images/image040.png" /></p>
+<p>Figure 8: Switching to selection tab</p>
+<p><strong>2)</strong> Selection Tools – in selection tab, the following selection tools
+are present (see Figure 9)</p>
+<p>&nbsp;<strong>2.1</strong> <em>General description</em></p>
+<p><em>&nbsp;-</em>Only one type of selection is allowed, for example points can’t be
+selected with region.</p>
+<p>&nbsp;- In order to <strong>quit</strong> selection mode, after region/points are
+selected, press middle mouse button or 3<sup>rd</sup> mouse button.</p>
+<p>&nbsp;- When ‘Reset’ button is pressed all selections are cleared.</p>
+<p>&nbsp;- When ‘Spatial’ tab is pressed, all selections are cleared.</p>
+<p><img alt="image20" src="_images/image042.png" /></p>
+<p>Figure 9: Selection tools</p>
+<p><strong>&nbsp;</strong></p>
+<p><strong>2.2</strong> <em>Select/Add points</em> – allows to select single/multiple points
+from the map (see Figure 10)</p>
+<p><img alt="image21" src="_images/image044.png" /></p>
+<p>Figure 10: Selecting points</p>
+<p><strong>2.3</strong> <em>Selecting Region(s)</em></p>
+<ul class="simple">
+<li>In order select region press ‘Add region’</li>
+</ul>
+<p><em>-</em>Adding two or more regions: there is restriction to select only
+regions that have at least one side equal, and ends of the side lie on
+the same line:</p>
+<p><em>&nbsp;</em></p>
+<p><em>|image22|</em></p>
+<p>Figure 11: Selecting regions</p>
+<p><strong>&nbsp;</strong></p>
+<p><strong>&nbsp;</strong></p>
+<p><strong>2.4</strong> <em>Selecting Rows/Column</em></p>
+<ul class="simple">
+<li>Press ‘Add Row’ or ‘Add Column’ to select the entire row/column:</li>
+</ul>
+<p><img alt="image23" src="_images/image048.png" /></p>
+<p><img alt="image24" src="_images/image050.png" /></p>
+<p>Figure 12: Selecting rows (left) or columns (right).</p>
+<p>2.4 <em>Select All</em></p>
+<p>&nbsp;- Pressing ‘Select All’ will select the entire map (see Fig.6)</p>
+<p><img alt="image25" src="_images/image052.png" /></p>
+<p>Figure 13: Selecting the entire map.</p>
+<div class="section" id="profile-analysis">
+<h2>Profile analysis<a class="headerlink" href="#profile-analysis" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>After selection is done, press ‘Profile’ button in order to show the Distribution window:</li>
+</ul>
+<p><img alt="image26" src="_images/image054.png" /></p>
+<p>Figure 14: Distribution window, with the Average distribution added to
+the plot (thick red line). The case is for the two disconnected regions.</p>
+<p>Available options:</p>
+<p>&nbsp;- <strong>Direction</strong> (Rows/Columns) – changes one of the axis to x/y
+respectively</p>
+<p>&nbsp;- <strong>Swap X-Y</strong> – changes between axes (Fig.8)</p>
+<p>&nbsp;- <strong>Single</strong> – all the data in the selected region of interest (rows or
+columns or regions or all) is shown in spatial distribution along rows
+or along columns (i.e. X or Y profile per row or column).</p>
+<p><strong>Average</strong> – when turned on, red line presenting average of quantities
+is shown.</p>
+<p><strong>File Menu</strong> options:</p>
+<p>&nbsp;- <strong>Export-&gt; Figure</strong>: Export to Matlab figure allows one to use Plot
+Edit options of Matlab</p>
+<p>&nbsp;- <strong>Export-&gt;CSV:</strong>Allows user to export select file name, for saving
+data in CSV format.</p>
+<p><em>|image27|</em></p>
+<p>Figure 15: Distirbution with axes swaped (rotated 90 degrees) by
+checking &#8216;Swap X-Y&#8217;.**</p>
+<p><em>&nbsp;</em></p>
+<p><em>|image27|</em></p>
+<p>Figure 16: The example of the Export to Figure output.**</p>
+<p><img alt="image28" src="_images/image058.png" /></p>
+<p>Figure 17: When Export to CSV file is chosen, user is prompted to type
+the file name.</p>
+</div>
+</div>
+<div class="section" id="image30">
+<h1><img alt="image30" src="_images/image062.png" /><a class="headerlink" href="#image30" title="Permalink to this headline">¶</a></h1>
+<p>Figure 18: The Export to Figure allows the user to copy one curve from
+the figure into another, add text, arrows, etc. and change all the
+visual style of the figure.</p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="time-analysis-toolbox-matlab-toolbox-for-the-high-image-frame-rate-piv-analysis">
+<h1>Time Analysis Toolbox - Matlab toolbox for the High Image Frame Rate PIV analysis<a class="headerlink" href="#time-analysis-toolbox-matlab-toolbox-for-the-high-image-frame-rate-piv-analysis" title="Permalink to this headline">¶</a></h1>
+<p>The only necessary step to transfer data to the Time Toolbox is the
+selection of the region of interest. As it is described above, the
+selection could be a set of points, rows, columns, regions or the whole
+map. When the selection is done, the Time Analysis button is pressed.</p>
+<p><img alt="image31" src="_images/image064.png" /></p>
+<p>Figure 19: Selection of the region of interest</p>
+<p><img alt="image32" src="_images/image066.png" /></p>
+<p>Figure 20: First window of the Time Toolbox, default plot is spatial
+averaged time history of the u velocity (from left to right).</p>
+<p>The possible selections in Velocity Component list are instantaneous and
+fluctuating velocity components from the left to right (u), from the top
+to bottom (v) and in case of stereoscopic PIV data it includes also the
+out-of-plane component w.</p>
+<p><img alt="image33" src="_images/image068.png" /></p>
+<p>Figure 21: Time history of the selected point, operated by checking the
+Time Series checkbox. Note that Average is checked too, and it is
+emphasized by thick blue line.</p>
+<p>Depends on the two checkboxes, the user might choose to see only
+pointwise time history and/or its spatial average. In addition, the user
+can plot the time history of the fluctuation velocities, same as the
+instantaneous for the three components.</p>
+<p><img alt="image34" src="_images/image070.png" /></p>
+<p>Figure 22: An example of the lateral correlation, Rii relates to the
+selected velocity component (i.e. if u is selected it is Ruu, from the
+left to the right) and k1 refers to the rows direction (from the top to
+the bottom).</p>
+<p>The available quantities are: the autocorrelation function in time and
+space (longitudinal and lateral), and the respective spectrums – the
+frequency spectrum and two wave-number spectra. For more details and
+definitions, please see the definitions and formulae in the contract
+attachment. The quantities have to be operated on the fluctuations in
+order to obtain meaningful results.</p>
+<p><img alt="image35" src="_images/image072.png" /></p>
+<p>Figure 23: An example of the longitudinal correlation function, in this
+case it is Rvv in k2 direction.</p>
+<p><img alt="image36" src="_images/image074.png" /></p>
+<p>Figure 24: An example of the wave-number spectra.</p>
+<p><img alt="image37" src="_images/image076.png" /></p>
+<p>Figure 25: Each one of the axes could be independently exported or saved
+into Matlab figure or comma separated file.</p>
+<p><img alt="image38" src="_images/image078.png" /></p>
+<p>Figure 26: Export to Matlab figure allows one to use Plot Edit options
+of Matlab.</p>
+<p><img alt="image39" src="_images/image080.png" /></p>
+<p>Figure 27: For each comma separated file, a unique file name is used.</p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<hr class="docutils" />
+<p><a class="reference external" href="#_ftnref1">[1]</a> MATLAB is a registered trademark of the MathWorks,
+Inc.</p>
+<p><a class="reference external" href="#_ftnref2">[2]</a> Insight is a registered trademark of the TSI Inc.</p>
+<p><a class="reference external" href="#_ftnref3">[3]</a> Test data (case A) on PC with AMD 2000+, 512Mb RAM,
+40Gb HD, Matlab 6.5 on Windows XP Pro takes about 18 seconds for 100
+vector maps, on P-III, with 256Mb, Windows 2000, 20Gb HD, Matlab 6.5 is
+45 seconds. The most consuming part is file I/O operations, i.e. reading
+of the .vec files.</p>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Getting Started with Spatial &amp; Time Analysis Toolbox</a><ul>
+<li><a class="reference internal" href="#operating-instructions">Operating Instructions</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#navigation">Navigation</a><ul>
+<li><a class="reference internal" href="#available-options">Available options:</a></li>
+<li><a class="reference internal" href="#controls">Controls:</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#arrows">Arrows</a></li>
+<li><a class="reference internal" href="#contour-quantity">Contour Quantity</a></li>
+<li><a class="reference internal" href="#contour-type">Contour type</a></li>
+<li><a class="reference internal" href="#selecting-region-of-interest-for-time-toolbox-or-distribution-analysis">Selecting region of interest for Time Toolbox or Distribution analysis</a><ul>
+<li><a class="reference internal" href="#profile-analysis">Profile analysis</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#image30"></a></li>
+<li><a class="reference internal" href="#time-analysis-toolbox-matlab-toolbox-for-the-high-image-frame-rate-piv-analysis">Time Analysis Toolbox - Matlab toolbox for the High Image Frame Rate PIV analysis</a></li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">Welcome to OpenPIV Spatial and Time Analysis Toolbox&#8217;s documentation!</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/tutorial.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="index.html" title="Welcome to OpenPIV Spatial and Time Analysis Toolbox’s documentation!"
+             >previous</a> |</li>
+        <li><a href="index.html">OpenPIV Spatial and Time Analysis Toolbox 0.01 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, OpenPIV group.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>
