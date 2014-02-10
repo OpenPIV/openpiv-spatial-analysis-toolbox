@@ -12,6 +12,11 @@ function [varargout] = cilmat2pivmat(varargin)
 %   newstruct(i).uf = u.uf(:,:,i); 
 % end
 % 
+% Example: 
+% 
+% u = load('8hz_cropped.mat');
+% v = cilmat2pivmat(u)
+% showf (v) 
 
 % Author: Alex Liberzon (alex dot liberzon at gmail dot com)
 % Copyright (c) 1998-2012 OpenPIV group
@@ -26,7 +31,7 @@ v = struct('x',[],'y',[],'vx',[],'vy',[],'unitx',[],'unity',[],...
     'history',{{'cilmat2pivmat'}},'ysign','Y axis upward','setname','test');
 v = repmat(v,[size(u.uf,3),1]);
 for i = 1:size(u.uf,3)
-    v(i).x = u.x(1,:)
+    v(i).x = u.x(1,:);
     v(i).y = u.y(:,1)'; 
     v(i).vx = u.u(:,:,i).';
     v(i).vy = u.v(:,:,i).';
