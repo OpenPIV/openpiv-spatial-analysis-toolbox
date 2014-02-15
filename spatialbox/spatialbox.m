@@ -694,7 +694,7 @@ if isfield(handles,'colorbar') && get(handles.checkbox_colorbar,'Value') == 1
     
 end
 
-set(gca,'ydir','reverse');
+% set(gca,'ydir','reverse');
 guidata(handles.fig,handles);
 
 % --------------------------------------------------------------------
@@ -1122,14 +1122,24 @@ if isfield(handles,'restoreorig')
 end
 handles.restoreorig = 1;
 
+gui_path = cd;
+if exist('lastpath.mat','file')
+    load('lastpath.mat');
+    if ~exist(gui_path,'dir'), gui_path = cd; end;
+else
+    gui_path = cd;
+end
+    
 
 try
     % [gui_files,gui_path,handles.dt,handles.scale,handles.state3d] = cil_uigetfiles;
-    gui_files = uipickfiles;
+    gui_files = uipickfiles('FilterSpec',fullfile(gui_path,'*.*'));
     handles.dt = 1;
     handles.state3d = 0;
     handles.scale = 1;
     [gui_path,~,~] = fileparts(gui_files{1});
+    
+    save('lastpath.mat','gui_path');
     
     
     handles.N = length(gui_files); % number of files selected
@@ -2057,14 +2067,25 @@ handles.restoreorig = 1;
 handles.dt = 1;
 handles.state3d = 0;
 
+gui_path = cd;
+if exist('lastpath.mat','file')
+    load('lastpath.mat');
+    if ~exist(gui_path,'dir'), gui_path = cd; end;
+else
+    gui_path = cd;
+end
+
 
 try
     % Check the contents of the MAT file, if it's coordinates only or full file
     % curdir = cd;
     % [coordMatfile,coordMatpath] = uigetfile('*.mat','Choose Coordinates or EXPORTED MAT file');
-    coordMatfile = uipickfiles('FilterSpec','*.mat');
+    coordMatfile = uipickfiles('FilterSpec',fullfile(gui_path,'*.mat'));
     w = who('-file',coordMatfile{1});
     
+    
+    [gui_path,~,~] = fileparts(coordMatfile{1}); %#ok<ASGLU>
+     save('lastpath.mat','gui_path');
     
     exportedMat = false;
     if sum(cellfun(@sum,strfind(w,'xUnits'))) > 0, exportedMat = true; end
@@ -2075,6 +2096,9 @@ try
         case true
             % load "ready" dataset, no need for double loading of
             % coordinates and velocities
+            
+            
+            
             tmp = load(coordMatfile{1});
             handles.x = tmp.x;
             handles.y = tmp.y;
@@ -2328,15 +2352,27 @@ handles.state3d = 0;
 handles.dt  = 1;
 
 
+gui_path = cd;
+if exist('lastpath.mat','file')
+    load('lastpath.mat');
+    if ~exist(gui_path,'dir'), gui_path = cd; end;
+else
+    gui_path = cd;
+end
+
+
 try
     % [gui_files,gui_path] = uigetfile('*.txt','Select the location and the type of the TXT file');
-    handles.files = uipickfiles; % April 2, 2010, AL
+    handles.files = uipickfiles('FilterSpec',fullfile(gui_path,'*.*')); % April 2, 2010, AL
+    
     
     
     handles.N = length(handles.files); % number of files selected
     if  handles.N > 0
         [handles.path,~,~] = fileparts(handles.files{1});
         set(handles.fig,'pointer','watch');
+        gui_path = handles.path; %#ok<NASGU>
+        save('lastpath.mat','gui_path');
     else
         return
     end
