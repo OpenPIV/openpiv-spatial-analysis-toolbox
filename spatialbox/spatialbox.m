@@ -1629,18 +1629,18 @@ if ~isempty(handles.previousSel)
         handles.rowlock=1;
     else
         errordlg('Your Selection is Invalid...');
+        return
+    end
+
+
+    if ismember([bottomrowY leftcolX],[handles.i handles.j],'rows') ...
+            || ismember([bottomrowY rightcolX],[handles.i handles.j],'rows') ...
+            || ismember([uprowY leftcolX],[handles.i handles.j],'rows') ...
+            || ismember([uprowY rightcolX],[handles.i handles.j],'rows')
+        errordlg('Your Selection is Invalid...');
         return;
-    end;
-end;
-
-if ismember([bottomrowY leftcolX],[handles.i handles.j],'rows') ...
-        || ismember([bottomrowY rightcolX],[handles.i handles.j],'rows') ...
-        || ismember([uprowY leftcolX],[handles.i handles.j],'rows') ...
-        || ismember([uprowY rightcolX],[handles.i handles.j],'rows')
-    errordlg('Your Selection is Invalid...');
-    return;
+    end
 end
-
 
 
 
