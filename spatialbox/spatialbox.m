@@ -694,7 +694,7 @@ if isfield(handles,'colorbar') && get(handles.checkbox_colorbar,'Value') == 1
     
 end
 
-% set(gca,'ydir','reverse'); % Alex, 27.12.10, Hadar computer.
+% set(gca,'ydir','reverse');
 guidata(handles.fig,handles);
 
 % --------------------------------------------------------------------
@@ -1122,14 +1122,24 @@ if isfield(handles,'restoreorig')
 end
 handles.restoreorig = 1;
 
+gui_path = cd;
+if exist('lastpath.mat','file')
+    load('lastpath.mat');
+    if ~exist(gui_path,'dir'), gui_path = cd; end;
+else
+    gui_path = cd;
+end
+    
 
 try
     % [gui_files,gui_path,handles.dt,handles.scale,handles.state3d] = cil_uigetfiles;
-    gui_files = uipickfiles;
+    gui_files = uipickfiles('FilterSpec',fullfile(gui_path,'*.*'));
     handles.dt = 1;
     handles.state3d = 0;
     handles.scale = 1;
     [gui_path,~,~] = fileparts(gui_files{1});
+    
+    save('lastpath.mat','gui_path');
     
     
     handles.N = length(gui_files); % number of files selected
@@ -1194,8 +1204,8 @@ try
                 for i = 2:handles.N
                     % d = vecread([handles.path,filesep,handles.files{i}],1,5);
                     d = vecread(handles.files{i},1,5);
-                    %                     handles.u(:,:,i) = d(:,:,3)*handles.scale/1000/handles.dt;
-                    %                     handles.v(:,:,i) = d(:,:,4)*handles.scale/1000/handles.dt;
+                    % handles.u(:,:,i) = d(:,:,3)*handles.scale/1000/handles.dt;
+                    % handles.v(:,:,i) = d(:,:,4)*handles.scale/1000/handles.dt;
                     handles.u(:,:,i) = d(:,:,3);
                     handles.v(:,:,i) = d(:,:,4);
                 end
@@ -1209,7 +1219,7 @@ try
                 %                 header = fgetl(fid);
                 %                 fclose(fid);
                 % get units - TODO. use findstr(header, '[') and ']'
-                handles.xUnits = 'pixels';
+                handles.xUnits   = 'pixels';
                 handles.velUnits = 'pixels';
                 
                 
@@ -1357,13 +1367,8 @@ handles.j=[];
 handles.PointsH=[];
 handles.Allselected=0;
 
-% handles.dx = handles.x(1,2) - handles.x(1,1);
-% handles.dy = handles.y(2,1) - handles.y(1,1);
-
-% abs() is added on Dec.13,2004. by Alex on IHW_Liberzon computer
-%
-handles.gridX = abs(handles.x(1,2) - handles.x(1,1));
-handles.gridY = abs(handles.y(1,1) - handles.y(2,1));
+handles.gridX = abs(handles.dx);
+handles.gridY = abs(handles.dy);
 
 % Show some and hide some controls
 set(handles.popupmenu_quantity,'Visible','on');
@@ -1405,7 +1410,7 @@ handles.property = [];
 % -------------- store all handles of select controls ----------------
 % handles.select_controls=[handles.pushbutton_selectpoints,handles.pushbutton_selectreg,handles.pushbutton_selectall,...
 %          handles.pushbutton_profile1,handles.pushbutton_time,...
-%          handles.pushbutton_reset, handles.rowpushbutton, handles.colpushbutton];
+%          handles.pushbutton_reset, handles.colpushbutton, handles.colpushbutton];
 
 handles.arrow_ctrls=[handles.edit_arrow_size,handles.checkbox_arrow,handles.checkbox_arrow_color];
 % handles.stat_controls=[handles.ed_mean,handles.ed_std,handles.ed_min,handles.ed_max,handles.ed_text,...
@@ -1419,7 +1424,7 @@ set(handles.pushbutton_select,'Enable','on');
 set(handles.fig,'pointer','arrow');
 
 % added on 10.04.06 for R12SP3 version
-if isfield(handles,'axes_main') 
+if isfield(handles,'axes_main')
     % Sep 3, 2013 found a new bug that handles.axes_main doesn't exist
     handles.axpos = get(handles.axes_main,'Position');
 end
@@ -1502,7 +1507,7 @@ guidata(handles.fig,handles);
 function pushbutton_selectpoints_Callback(~, ~, handles)
 
 
-set(handles.rowpushbutton,'Enable','off');
+set(handles.colpushbutton,'Enable','off');
 set(handles.pushbutton_selectreg,'Enable','off');
 set(handles.colpushbutton,'Enable','off');
 set(handles.pushbutton_selectall,'Enable','off');
@@ -1551,9 +1556,9 @@ while 1
         'Marker','o','Color','k','MarkerSize',8);
     
 end
-disp('Points selected')
-disp([handles.i,handles.j])
-disp(handles.x(handles.i,handles.j))
+% disp('Points selected')
+% disp([handles.i,handles.j])
+% disp(handles.x(handles.i,handles.j))
 guidata(handles.fig,handles);
 % update_gui(handles.fig,[],handles);
 
@@ -1563,7 +1568,7 @@ guidata(handles.fig,handles);
 function pushbutton_selectreg_Callback(~, ~, handles)
 % check if all selected is off
 set(handles.pushbutton_selectpoints,'Enable','off');
-set(handles.rowpushbutton,'Enable','off');
+set(handles.colpushbutton,'Enable','off');
 set(handles.colpushbutton,'Enable','off');
 set(handles.pushbutton_selectall,'Enable','off');
 
@@ -1579,39 +1584,39 @@ p1      =    min(point1,point2);             % calculate locations
 offset  =    abs(point1-point2);         % and dimensions
 
 
-limX = xlim; limY = ylim;                     % get Axis Limits
 % -------------- calculate columns & rows ------------------
-leftcolX = fix(( p1(1)-limX(1,1) )/ handles.gridX +1) + 1;
-rightcolX = fix(( p1(1)+offset(1)-limX(1,1) )/ handles.gridX )+1;
-bottomrowY =  fix(( p1(2)-limY(1,1) )/ handles.gridY+1 )+1;
-uprowY = fix(( p1(2) + offset(2) - limY(1,1) )/ handles.gridY)+1;
+[~,row] = min(abs(handles.y(:,1) - p1(2)));
+[~,col] = min(abs(handles.x(1,:) - p1(1)));
+
+offsetx = fix(offset(1)/handles.gridX);
+offsety = fix(offset(2)/handles.gridY);
+
+
+% leftcolX = fix(( p1(1)-limX(1,1) )/ handles.gridX +1) + 1;
+% rightcolX = fix(( p1(1)+offset(1)-limX(1,1) )/ handles.gridX )+1;
+% bottomrowY =  fix(( p1(2)-limY(1,1) )/ handles.gridY+1 )+1;
+% uprowY = fix(( p1(2) + offset(2) - limY(1,1) )/ handles.gridY)+1;
+
+leftcolX = col;
+rightcolX = col + offsetx;
+uprowY = row; 
+bottomrowY = row - offsety;
+
 
 
 % -------boundary check ----------------
-plotstateX=0;plotstateY=0;
-if leftcolX < 1
-    leftcolX = 1;
-    plotstateY = 1;
-end
-rightLimit = fix((limX(1,2)-limX(1,1))/handles.gridX)+1;
 
-if rightcolX > rightLimit
-    rightcolX = rightLimit;
-end
-uprowLimit = fix((limY(1,2)-limY(1,1))/handles.gridY)+1;
+[uprowLimit,rightLimit] = size(handles.x);
 
-if bottomrowY < 1
-    bottomrowY = 1;
-    plotstateX = 1;   % we need it to plot in right way
-end
-if uprowY>uprowLimit
-    uprowY=uprowLimit;
-end
+if leftcolX < 1, leftcolX = 1; end
+if rightcolX > rightLimit, rightcolX = rightLimit; end
+if bottomrowY < 1, bottomrowY = 1; end
+if uprowY > uprowLimit, uprowY = uprowLimit; end
 
 % --------- selection checking ---------------
 sizeI = size(handles.i,1);
 sizeJ = size(handles.j,1);
-numofcols = rightcolX-leftcolX+1;
+numofcols = offsetx + 1; % rightcolX - leftcolX + 1;
 % numofrows = uprowY-bottomrowY+1;
 
 
@@ -1649,26 +1654,32 @@ for i1 = bottomrowY:uprowY
 end
 % ------------- plot ----------------------
 
-lx_box=limX(1,1)+(leftcolX-1)*handles.gridX*~plotstateY;
-rx_box=limX(1,1)+(rightcolX-1)*handles.gridX;
-uy_box=limY(1,1)+(uprowY-1)*handles.gridY;
-by_box=limY(1,1)+(bottomrowY-1)*handles.gridY*~plotstateX;
+ %lx_box=limX(1,1)+(leftcolX-1)*handles.gridX*~plotstateY;
+% rx_box=limX(1,1)+(rightcolX-1)*handles.gridX;
+% uy_box=limY(1,1)+(uprowY-1)*handles.gridY;
+% by_box=limY(1,1)+(bottomrowY-1)*handles.gridY*~plotstateX;
 
 
-x1 = [lx_box rx_box rx_box lx_box lx_box];
-y1 = [by_box by_box uy_box uy_box by_box];
-hold on
-handles.selectionbox = plot(x1,y1,'--b','LineWidth',1.5);
-hold off
-handles.previousSel=[leftcolX rightcolX bottomrowY uprowY];
+% x1 = [lx_box rx_box rx_box lx_box lx_box];
+% y1 = [by_box by_box uy_box uy_box by_box];
+if all(offset > 0)
+    hold on
+    % handles.selectionbox = plot(x1,y1,'--b','LineWidth',1.5);
+    handles.selectionbox = rectangle('Position',[p1 offset]);
+    set(handles.selectionbox,'EdgeColor','b','LineStyle','--','LineWidth',1.5);
+    hold off
+end
+handles.previousSel=[leftcolX rightcolX uprowY bottomrowY ];
 
 guidata(handles.fig,handles);
+
+
 
 
 % --- Executes on button press in pushbutton_selectall.
 function pushbutton_selectall_Callback(hObject, ~, handles)
 set(handles.pushbutton_selectpoints,'Enable','off');
-set(handles.rowpushbutton,'Enable','off');
+set(handles.colpushbutton,'Enable','off');
 set(handles.colpushbutton,'Enable','off');
 set(handles.pushbutton_selectreg,'Enable','off');
 set(handles.pushbutton_selectall,'Enable','off');
@@ -1730,7 +1741,7 @@ set(handles.pushbutton_selectpoints,'Enable','on');
 set(handles.pushbutton_selectreg,'Enable','on');
 set(handles.colpushbutton,'Enable','on');
 set(handles.pushbutton_selectall,'Enable','on');
-set(handles.rowpushbutton,'Enable','on');
+set(handles.colpushbutton,'Enable','on');
 guidata(handles.fig,handles);
 update_gui(gcbo,[],guidata(gcbo));
 
@@ -1883,8 +1894,8 @@ if ~hold_state, hold off, view(2); set(ax,'NextPlot',next); end
 if nargout > 0, hh = [h1;h2;h3]; end
 
 
-% --- Executes on button press in rowpushbutton.
-function rowpushbutton_Callback(~, ~, handles)
+% --- Executes on button press in colpushbutton.
+function colpushbutton_Callback(~, ~, handles)
 
 set(handles.pushbutton_selectpoints,'Enable','off');
 set(handles.pushbutton_selectreg,'Enable','off');
@@ -1904,16 +1915,20 @@ while 1
     
     % When the right button is pressed, stop the loop
     if (buttonNumber == 2) || (buttonNumber==3)
-        break;
-    end;
-    col = fix (( x1 - limX(1,1) )/ handles.gridX+0.5  )+1;
-    row = fix(( y1 - limY(1,1) )/ handles.gridY+0.5  )+1;
+        break
+    end
+    
+    
+    [~,row] = min(abs(handles.y(:,1) - y1));
+    [~,col] = min(abs(handles.x(1,:) - x1));
+    
+    
     % check for errors ----------------
     if col<1 || col>(fix((limX(1,2)-limX(1,1))/handles.gridX)+1) || row<1 || row...
             >(fix((limY(1,2)-limY(1,1))/handles.gridY)+1);
         guidata(handles.fig,handles);
-        return;
-    end;
+        return
+    end
     % ---------------------------------
     sizeI = size(handles.i,1);
     % rightcolX = fix(( limX(1,2)-limX(1,1) )/  handles.gridX )+1;
@@ -1939,13 +1954,13 @@ end;
 guidata(handles.fig,handles);
 
 % --- Executes on button press in colpushbutton.
-function colpushbutton_Callback(~, ~, handles)
+function rowpushbutton_Callback(~, ~, handles)
 % hObject    handle to colpushbutton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 set(handles.pushbutton_selectpoints,'Enable','off');
 set(handles.pushbutton_selectreg,'Enable','off');
-set(handles.rowpushbutton,'Enable','off');
+set(handles.colpushbutton,'Enable','off');
 set(handles.pushbutton_selectall,'Enable','off');
 
 set(handles.axes_main,'NextPlot','Add');
@@ -1954,6 +1969,10 @@ limY = ylim;
 leftcolX   = 1;
 % bottomrowY = 1;
 
+rightcolX = fix( abs(diff(limX)) / handles.gridX )+1;
+
+nrows = fix( abs(diff(limY)) / handles.gridY ) + 1; 
+
 while 1
     
     [x1,y1, buttonNumber] = ginput(1);
@@ -1961,22 +1980,25 @@ while 1
     % When the right button is pressed, stop the loop
     if (buttonNumber == 2) || (buttonNumber==3)
         break;
-    end;
-    col = fix (( x1 - limX(1,1) )/ handles.gridX+0.5  )+1;
-    row = fix(( y1 - limY(1,1) )/ handles.gridY+0.5  )+1;
+    end
+    
+    [~,row] = min(abs(handles.y(:,1) - y1));
+    [~,col] = min(abs(handles.x(1,:) - x1));
+    
+    % col = fix (( x1 - min(limX) ) / handles.gridX + 0.5  ) + 1;
+    % row = fix(( y1 - limY(1,1) )/ handles.gridY+0.5  )+1;
+    % row = fix(( y1 - min(limY) )/ handles.gridY + 0.5  ) + 1 ;
     % -------- find the corners of rectangle ----
     
     
     % check for errors ----------------
-    if col<1 || col>(fix((limX(1,2)-limX(1,1))/handles.gridX)+1) ...
-            || row < 1 ...
-            || row >(fix((limY(1,2)-limY(1,1))/handles.gridY)+1);
+    if col < 1 || col > rightcolX || row < 1 || row > nrows
         guidata(handles.fig,handles);
         return
     end
     % ---------------------------------
     sizeI = size(handles.i,1);
-    rightcolX = fix(( limX(1,2)-limX(1,1) )/  handles.gridX )+1;
+    
     % uprowY    = fix(( limY(1,2)-limY(1,1) ) /  handles.gridY )+1;
     sizeJ = size(handles.j,1);
     numofcols = rightcolX - leftcolX + 1;
@@ -1984,10 +2006,11 @@ while 1
     %
     handles.i(sizeI+1:sizeI+numofcols,1) = row;
     handles.j(sizeJ+1:sizeJ+numofcols,1) = 1:rightcolX;
-    col = 1:rightcolX;
     %
-    line(limX(1,1)+(col-1)*...
-        handles.gridX,limY(1,1)+(row-1)*handles.gridY,...
+%     line(limX(1,1)+(col-1)*...
+%         handles.gridX,limY(1,1)+(row-1)*handles.gridY,...
+%         'Marker','o','Color','k','MarkerSize',8);
+    line(handles.x(1,:),repmat(handles.y(row,1),1,rightcolX),...
         'Marker','o','Color','k','MarkerSize',8);
 end;
 
@@ -2031,7 +2054,7 @@ function pushbutton_stats_Callback(~, ~, ~)
 
 
 % --------------------------------------------------------------------
-function loadMat_Callback(~, ~, handles)
+function loadMat_Callback(~, ~, handles) %#ok<DEFNU>
 % hObject    handle to loadMat (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -2044,14 +2067,25 @@ handles.restoreorig = 1;
 handles.dt = 1;
 handles.state3d = 0;
 
+gui_path = cd;
+if exist('lastpath.mat','file')
+    load('lastpath.mat');
+    if ~exist(gui_path,'dir'), gui_path = cd; end;
+else
+    gui_path = cd;
+end
+
 
 try
     % Check the contents of the MAT file, if it's coordinates only or full file
     % curdir = cd;
     % [coordMatfile,coordMatpath] = uigetfile('*.mat','Choose Coordinates or EXPORTED MAT file');
-    coordMatfile = uipickfiles('FilterSpec','*.mat');
+    coordMatfile = uipickfiles('FilterSpec',fullfile(gui_path,'*.mat'));
     w = who('-file',coordMatfile{1});
     
+    
+    [gui_path,~,~] = fileparts(coordMatfile{1}); %#ok<ASGLU>
+     save('lastpath.mat','gui_path');
     
     exportedMat = false;
     if sum(cellfun(@sum,strfind(w,'xUnits'))) > 0, exportedMat = true; end
@@ -2062,6 +2096,9 @@ try
         case true
             % load "ready" dataset, no need for double loading of
             % coordinates and velocities
+            
+            
+            
             tmp = load(coordMatfile{1});
             handles.x = tmp.x;
             handles.y = tmp.y;
@@ -2133,13 +2170,13 @@ catch ME
     return
 end
 
-try
-    set(handles.data_info,'String',coordMatfile); % july 27, Alex's Laptop, SVN assembla
-catch ME
-    % setfield(handles,'data_info',coordMatfile); % 18.12.10, dropbox
-    disp(ME.message);
-    handles.('data_info') = coordMatfile; % Aug. 2013
-end
+% try
+%     set(handles.data_info,'String',coordMatfile); % july 27, Alex's Laptop, SVN assembla
+% catch ME
+%     % setfield(handles,'data_info',coordMatfile); % 18.12.10, dropbox
+%     disp(ME.message);
+%     handles.('data_info') = coordMatfile; % Aug. 2013
+% end
 handles.current = 1;                      % current file beeing displayed
 % Display first file number, total number of files
 set(handles.edit_current,'String',handles.current);
@@ -2274,7 +2311,7 @@ handles.property = [];
 % -------------- store all handles of select controls ----------------
 % handles.select_controls=[handles.pushbutton_selectpoints,handles.pushbutton_selectreg,handles.pushbutton_selectall,...
 %          handles.pushbutton_profile1,handles.pushbutton_time,...
-%          handles.pushbutton_reset, handles.rowpushbutton, handles.colpushbutton];
+%          handles.pushbutton_reset, handles.colpushbutton, handles.colpushbutton];
 
 handles.arrow_ctrls=[handles.edit_arrow_size,handles.checkbox_arrow,handles.checkbox_arrow_color];
 % handles.stat_controls=[handles.ed_mean,handles.ed_std,handles.ed_min,handles.ed_max,handles.ed_text,...
@@ -2315,15 +2352,27 @@ handles.state3d = 0;
 handles.dt  = 1;
 
 
+gui_path = cd;
+if exist('lastpath.mat','file')
+    load('lastpath.mat');
+    if ~exist(gui_path,'dir'), gui_path = cd; end;
+else
+    gui_path = cd;
+end
+
+
 try
     % [gui_files,gui_path] = uigetfile('*.txt','Select the location and the type of the TXT file');
-    handles.files = uipickfiles; % April 2, 2010, AL
+    handles.files = uipickfiles('FilterSpec',fullfile(gui_path,'*.*')); % April 2, 2010, AL
+    
     
     
     handles.N = length(handles.files); % number of files selected
     if  handles.N > 0
         [handles.path,~,~] = fileparts(handles.files{1});
         set(handles.fig,'pointer','watch');
+        gui_path = handles.path; %#ok<NASGU>
+        save('lastpath.mat','gui_path');
     else
         return
     end
@@ -2338,11 +2387,10 @@ try
     firstline = fgetl(fid);
     if isnan(str2double(strtok(firstline)))
         error('Different TXT format, try using VEC loader');
-        return
     else
-         d = load(handles.files{1});
+        d = load(handles.files{1});
     end
-
+    
     
     
     
@@ -2415,15 +2463,15 @@ try
     hwaitbar = waitbar(0,'Please wait...');
     
     % we need to know the reshape size:
-    rows = find(diff(d(:,1))<0,1);
-    cols = length(d(:,1))/rows;
+    cols = find(diff(d(:,1))<0,1);
+    rows = length(d(:,1))/cols;
     
     
     [handles.u,handles.v] = deal(zeros(rows,cols,handles.N+1));
-    handles.x           = reshape(d(:,1),rows,cols);
-    handles.y           = reshape(d(:,2),rows,cols);
-    handles.u(:,:,1)    = reshape(d(:,3),rows,cols);
-    handles.v(:,:,1)    = reshape(d(:,4),rows,cols);
+    handles.x           = rot90(reshape(d(:,1),cols,rows));
+    handles.y           = rot90(reshape(d(:,2),cols,rows));
+    handles.u(:,:,1)    = rot90(reshape(d(:,3),cols,rows));
+    handles.v(:,:,1)    = rot90(reshape(d(:,4),cols,rows));
     
     orderX = order(min(d(:,1))); % added the option for small
     
@@ -2441,8 +2489,8 @@ try
     for i = 2:handles.N
         % d = dlmread(handles.files{i},'',1,0);
         d = load(handles.files{i});
-        handles.u(:,:,i)    = reshape(d(:,3),rows,cols);
-        handles.v(:,:,i)    = reshape(d(:,4),rows,cols);
+        handles.u(:,:,i)    = rot90(reshape(d(:,3),cols,rows));
+        handles.v(:,:,i)    = rot90(reshape(d(:,4),cols,rows));
     end
     clear d
     
