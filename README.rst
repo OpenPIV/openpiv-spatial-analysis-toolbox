@@ -24,9 +24,9 @@ Developers
 
 Ideas and implementation:
 
-Dr. Roi Gurka, Ben Gurion University http://www.bgu.ac.il/~gurka
+Dr. Roi Gurka, https://github.com/roigurka
 
-Dr. Alex Liberzon, Tel Aviv University http://www.eng.tau.ac.il/~alexlib
+Dr. Alex Liberzon, https://github.com/alexlib
 
 Denis Lepchev 
 
