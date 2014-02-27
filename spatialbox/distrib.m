@@ -3,13 +3,7 @@ function varargout = distrib(varargin)
 %    FIG = DISTRIB launch distrib GUI.
 %    DISTRIB('callback_name', ...) invoke the named callback.
 
-% Last Modified by GUIDE v2.5 15-Jun-2008 21:03:14
-% 03.05.04, Alex: movegui(fig,'center')
-% handles = rmfield(handles,'property');
-% save to CSV now works both for rows and for columns
-% it checks which data is redundant.
-
-% Copyright (c) 1998-2012 OpenPIV group
+% Copyright (c) 1998-2014 OpenPIV group
 % See the file license.txt for copying permission.
 
 
@@ -25,9 +19,9 @@ if nargin == 1  % LAUNCH GUI
     set(fig, 'PrintTemplate', pt);
     
     % ------   Initialization --------------
-    % Generate a structure of handles to pass to callbacks, and store it. 
+    % Generate a structure of handles to pass to callbacks, and store it.
     handles                 = guihandles(fig);
-    % in GUIDE the figure Tag is defined as 'fig', so 
+    % in GUIDE the figure Tag is defined as 'fig', so
     % handles.fig is enough.
     %     handles.distribHandle   = fig;
     handles.data            = varargin{1};
@@ -40,39 +34,39 @@ if nargin == 1  % LAUNCH GUI
     
     if isfield(handles,'property')
         handles  =  rmfield(handles,'property');
-    end 
+    end
     for i  =  1:length(handles.data.i)
         handles.property(handles.data.i(i) - MatrixLeftMove, handles.data.j(i) - MatrixUpMove) = ...
             handles.data.property(handles.data.i(i),handles.data.j(i));
     end
     %------------------------------- Delete empty rows ------------------
     index = 1;
-    emptyrows               = []; 
+    emptyrows               = [];
     emptycols               = [];
     for i = 1:size(handles.property,1)
-        if handles.property(i,:) == 0 
+        if handles.property(i,:) == 0
             emptyrows(index) = i;  %#ok<AGROW>
             index = index + 1;
-        end; 
+        end;
     end;
     if ~isempty(emptyrows)
         handles.property(emptyrows,:) = NaN;
-    else 
+    else
         
         %--------------------Delete  Empty Columns ----------
         index = 1;
         for i = 1:size(handles.property,2)
-            if handles.property(:,i) == 0 
+            if handles.property(:,i) == 0
                 emptycols(index) = i;  %#ok<AGROW>
                 index = index+1;
             end
-        end 
+        end
         if ~isempty(emptycols)
             handles.property(:,emptycols) = NaN;
             %           set(handles.UpdateGraph,'Value',2);
             %            set(handles.UpdateGraph,'Enable','off');
-        end 
-    end   
+        end
+    end
     % --------------------------------
     
     handles.leftX = min(handles.data.j);
@@ -85,15 +79,26 @@ if nargin == 1  % LAUNCH GUI
     
     handles.hold = 0;
     handles.displayname = cellstr(num2str(handles.data.y(handles.topY:handles.bottomY,1)));
+    
+    
+    if length(unique(handles.data.j)) <= length(unique(handles.data.i))
+        set(handles.UpdateGraph,'Value',2); % by cols
+    else
+        set(handles.UpdateGraph,'Value',1); % by rows
+    end
+    UpdateGraph_Callback(fig, [], handles);
+    
     guidata(fig, handles);
+        
+%         plot(handles.data.x(1,handles.leftX:handles.rightX),handles.property,...
+%             'DisplayName',handles.displayname);
+%         %     legend show
+%         ylabel(['x',handles.data.xUnits]); % [m]');
+%         grid on;
+%         xlabel(strcat(handles.data.previous_quantity,'  ',handles.data.units));
 
-    plotHandle = plot(handles.data.x(1,handles.leftX:handles.rightX),handles.property,...
-        'DisplayName',handles.displayname);
-%     legend show
-    ylabel(['x',handles.data.xUnits]); % [m]'); 
-    grid on;
-    xlabel(strcat(handles.data.previous_quantity,'  ',handles.data.units));
-%     plotedit on;
+    
+    %     plotedit on;
     if nargout > 0
         varargout{1}  =  fig;
     end
@@ -116,12 +121,12 @@ end
 % --------------------------------------------------------------------
 function varargout  =  UpdateGraph_Callback(h, eventdata, handles, varargin)
 
-val  =  get(handles.UpdateGraph,'Value'); 
+val  =  get(handles.UpdateGraph,'Value');
 
-switch val 
+switch val
     case 1
         x = handles.data.x(1,handles.leftX:handles.rightX);
-        x_label = (['x ',handles.data.xUnits]); % 'x [m]'; 
+        x_label = (['x ',handles.data.xUnits]); % 'x [m]';
         y = handles.property';
         % y = y(~isnan(y(:,1)),:);
         y_label = strcat(handles.data.previous_quantity,'  ',handles.data.units);
@@ -130,7 +135,7 @@ switch val
         handles.displayname = cellstr(num2str(handles.data.y(handles.topY:handles.bottomY,1)));
     case 2
         y = handles.data.y(handles.topY:handles.bottomY,1);
-        y_label = (['y ',handles.data.xUnits]); % 'y [m]'; 
+        y_label = (['y ',handles.data.xUnits]); % 'y [m]';
         x = handles.property;
         % x = x(:,~isnan(x(1,:)));
         x_label = strcat(handles.data.previous_quantity,'  ',handles.data.units);
@@ -157,24 +162,24 @@ cla reset;
 % ---------------------- Single is checked------------------
 if get(handles.SnglCheckbox,'Value') == 1
     plot(x,y,'DisplayName',handles.displayname);
-    xlabel(x_label); 
-    ylabel(y_label); 
+    xlabel(x_label);
+    ylabel(y_label);
 end
 % --------------------- Avge is checked -------------------------
 if get(handles.AvgCheckbox,'Value') == get(handles.AvgCheckbox,'Max')
     hold on;
-    plot(xa,ya,'r-','LineWidth',2);   
+    plot(xa,ya,'r-','LineWidth',2);
     hold off;
-    xlabel(x_label); 
-    ylabel(y_label); 
-end;   
+    xlabel(x_label);
+    ylabel(y_label);
+end;
 grid on;
 if handles.legend
     legend('show');
 else
     legend('hide');
 end
- % plotedit on;
+% plotedit on;
 
 
 
@@ -189,7 +194,7 @@ else
     handles.swap = 0;
     
 end
-guidata(gcbo,handles);  
+guidata(gcbo,handles);
 UpdateGraph_Callback(gcbo,[],guidata(gcbo));
 
 
@@ -226,34 +231,34 @@ hl  =  findobj(gca,'type','line');
 if ~isempty(hl)
     xd  =  get(hl,'xdata');
     yd  =  get(hl,'ydata');
-    if ~iscell(xd) 
+    if ~iscell(xd)
         matr(:,1)  =  xd(:);
         matr(:,2)  =  yd(:);
     elseif isequal(xd{1},xd{2})
         matr(:,1)  =  [xd{1}]';
-        for i  =  1:length(hl), 
+        for i  =  1:length(hl),
             matr(:,i+1)  =  [yd{i}]';
         end
     elseif isequal(yd{1},yd{2})
         matr(:,1)  =  [yd{1}]';
-        for i  =  1:length(hl), 
+        for i  =  1:length(hl),
             matr(:,i+1)  =  [xd{i}]';
         end
     else
-        for i  =  1:2:length(hl), 
+        for i  =  1:2:length(hl),
             matr(:,i)  =  [xd{i}]';
             matr(:,i+1)  =  [yd{i}]';
         end
     end
     
     file  =  [];
-    file  =  inputdlg('File Name','Input Name for CSV File');   
+    file  =  inputdlg('File Name','Input Name for CSV File');
     if ~isempty (file)
-        csvwrite(file{1},matr);  
-    else 
+        csvwrite(file{1},matr);
+    else
         errordlg ('Choose a valid file name !!! ');
     end;
-end;   
+end;
 
 
 % --------------------------------------------------------------------
@@ -283,8 +288,8 @@ hl =  findobj(handles.export_axes,'type','line');
 xd = get(hl,'xdata');
 yd = get(hl,'ydata');
 if iscell(xd)
-    for i = 1:length(xd), 
-        if all(isnan(xd{i})) | all(isnan(yd{i})), 
+    for i = 1:length(xd),
+        if all(isnan(xd{i})) | all(isnan(yd{i})),
             delete(hl(i));
         end
     end
@@ -304,34 +309,34 @@ hl  =  findobj(gca,'type','line');
 if ~isempty(hl)
     xd  =  get(hl,'xdata');
     yd  =  get(hl,'ydata');
-    if ~iscell(xd) 
+    if ~iscell(xd)
         matr(:,1)  =  xd(:);
         matr(:,2)  =  yd(:);
     elseif isequal(xd{1},xd{2})
         matr(:,1)  =  [xd{1}]';
-        for i  =  1:length(hl), 
+        for i  =  1:length(hl),
             matr(:,i+1)  =  [yd{i}]';
         end
     elseif isequal(yd{1},yd{2})
         matr(:,1)  =  [yd{1}]';
-        for i  =  1:length(hl), 
+        for i  =  1:length(hl),
             matr(:,i+1)  =  [xd{i}]';
         end
     else
-        for i  =  1:2:length(hl), 
+        for i  =  1:2:length(hl),
             matr(:,i)  =  [xd{i}]';
             matr(:,i+1)  =  [yd{i}]';
         end
     end
     
     file  =  [];
-    file  =  inputdlg('File Name','Input Name for CSV File');   
+    file  =  inputdlg('File Name','Input Name for CSV File');
     if ~isempty (file)
-        csvwrite(file{1},matr);  
-    else 
+        csvwrite(file{1},matr);
+    else
         errordlg ('Choose a valid file name !!! ');
     end;
-end; 
+end;
 
 
 
@@ -356,8 +361,5 @@ else
     handles.legend = 0;
     
 end
-guidata(gcbo,handles);  
+guidata(gcbo,handles);
 UpdateGraph_Callback(gcbo,[],guidata(gcbo));
-
-
-
