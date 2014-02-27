@@ -1,16 +1,8 @@
 % SPATIALBOX - main GUI file, created by GUIDE
 %
 
-% Copyright (c) 1998-2012 OpenPIV group
+% Copyright (c) 1998-2014 OpenPIV group
 % See the file license.txt for copying permission.
-
-% Changes log:
-% Last modified: 13-12-2004
-% by Alex Liberzon,
-% ydir is now reversed in update_gui for the Insight data. Check for the
-% OpenPIV data
-% - abs() is added to gridX and gridY - both have to be removed since
-% it just doubles the handles.dx and handles.dy
 
 function varargout = spatialbox(varargin)
 warning off %#ok<WNOFF>
