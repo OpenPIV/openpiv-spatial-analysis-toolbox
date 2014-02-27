@@ -1509,7 +1509,7 @@ function pushbutton_selectpoints_Callback(~, ~, handles)
 
 set(handles.colpushbutton,'Enable','off');
 set(handles.pushbutton_selectreg,'Enable','off');
-set(handles.colpushbutton,'Enable','off');
+set(handles.rowpushbutton,'Enable','off');
 set(handles.pushbutton_selectall,'Enable','off');
 
 
@@ -1569,7 +1569,7 @@ function pushbutton_selectreg_Callback(~, ~, handles)
 % check if all selected is off
 set(handles.pushbutton_selectpoints,'Enable','off');
 set(handles.colpushbutton,'Enable','off');
-set(handles.colpushbutton,'Enable','off');
+set(handles.rowpushbutton,'Enable','off');
 set(handles.pushbutton_selectall,'Enable','off');
 
 waitforbuttonpress;
@@ -1680,7 +1680,7 @@ guidata(handles.fig,handles);
 function pushbutton_selectall_Callback(hObject, ~, handles)
 set(handles.pushbutton_selectpoints,'Enable','off');
 set(handles.colpushbutton,'Enable','off');
-set(handles.colpushbutton,'Enable','off');
+set(handles.rowpushbutton,'Enable','off');
 set(handles.pushbutton_selectreg,'Enable','off');
 set(handles.pushbutton_selectall,'Enable','off');
 handles.Allselected=1;
@@ -1741,7 +1741,7 @@ set(handles.pushbutton_selectpoints,'Enable','on');
 set(handles.pushbutton_selectreg,'Enable','on');
 set(handles.colpushbutton,'Enable','on');
 set(handles.pushbutton_selectall,'Enable','on');
-set(handles.colpushbutton,'Enable','on');
+set(handles.rowpushbutton,'Enable','on');
 guidata(handles.fig,handles);
 update_gui(gcbo,[],guidata(gcbo));
 
@@ -1899,7 +1899,7 @@ function colpushbutton_Callback(~, ~, handles)
 
 set(handles.pushbutton_selectpoints,'Enable','off');
 set(handles.pushbutton_selectreg,'Enable','off');
-set(handles.colpushbutton,'Enable','off');
+set(handles.rowpushbutton,'Enable','off');
 set(handles.pushbutton_selectall,'Enable','off');
 
 set(handles.axes_main,'NextPlot','Add');
