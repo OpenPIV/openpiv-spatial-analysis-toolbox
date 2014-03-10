@@ -106,9 +106,9 @@ function pushbutton_load_Callback(hObject, eventdata, handles)
 % Returns the names of the selected files
 handles.list_entries = get(handles.listbox_files,'String');
 handles.index_selected = get(handles.listbox_files,'Value');
-if isempty(handles.index_selected) | min(handles.index_selected) < 3
-    errordlg('Wrong selection','Incorrect Selection','modal')
-else
+if isempty(handles.index_selected) 
+    errordlg('You must select file before pressing Load','Incorrect Selection','modal')
+end
 
 % if ~isfield(handles,'step')
 handles.step = str2double(get(handles.edit_step,'String'));
@@ -120,17 +120,13 @@ switch length(handles.index_selected)
     case {1}                        % only the first file is selected,
         % pick all files from it up to last
         % How many files are selected
-%         index = handles.index_selected:handles.step:length(handles.list_entries);
-% June 26, 2004, bug fix of the first release.
-        index = handles.index_selected;
+        
+        index = handles.index_selected:handles.step:length(handles.list_entries);
         % [handles.filenames{1:length(index),1}] = deal(handles.list_entries(index));
         handles.filenames = handles.list_entries(index);
     case {2}
         % two files are selected, first and last
-        % June 26, 2004, bug fix of the first release.
-%        index = min(handles.index_selected):handles.step:max(handles.index_selected);
-         index = handles.index_selected; %
-
+        index = min(handles.index_selected):handles.step:max(handles.index_selected);
         %         [handles.filenames{1:length(index),1}] = deal(handles.list_entries(index));
         handles.filenames = handles.list_entries(index);
         
@@ -143,7 +139,6 @@ switch length(handles.index_selected)
 end
 guidata(hObject,handles);
 uiresume(handles.fig);
-end
 
 
 
@@ -159,6 +154,25 @@ uiresume(handles.fig);
 % --- Executes during object creation, after setting all properties.
 function listbox_files_CreateFcn(hObject, eventdata, handles)
 
+% if ispc
+%     set(hObject,'BackgroundColor','white');
+% else
+%     set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
+% end
+% if ~isfield(handles,'path')
+%     handles.path = cd;
+% end
+% 
+% if get(handles.check3d,'Value') == 1
+%     handles.files = dir(fullfile(handles.path,'*.v3d')); %     tmp2
+% else
+%     handles.files = dir(fullfile(handles.path,'*.vec'));
+% end;  
+% 
+% list = dir(handles.path);
+% ind = find(cat(1,list.isdir));
+% set(handles.listbox_files,'String',{list(ind).name,handles.files.name});
+% guidata(hObject,handles)
 
 % --- Executes on selection change in listbox_files.
 function listbox_files_Callback(hObject, eventdata, handles)
@@ -398,11 +412,7 @@ function check3d_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of check3d
-if get(hObject,'Value') == 1
-    handles.state3d  = 1;
-else
-    handles.state3d  = 0;
-end
+handles.state3d  = 1;
 guidata(hObject,handles);
 update_gui(hObject, [], handles);
 

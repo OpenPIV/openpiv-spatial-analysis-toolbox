@@ -1,0 +1,13 @@
+Selection Fixes:
+
+adjusting selection When selection rectangle is out of boundary
+
+adjusting selection when point clicked is out of range
+
+'reset' errors when pressed many times: "delete: invalid handle"
+
+reset data when move to >spatial<
+
+contsrainX + points - didnt work in the right way
+
+

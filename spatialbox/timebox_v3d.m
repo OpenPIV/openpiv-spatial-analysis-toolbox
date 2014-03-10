@@ -1,5 +1,5 @@
-function varargout = timebox(varargin)
-%TIMEBOX First prototype of the time toolbox
+function varargout = timebox_v3d(varargin)
+%TIMEBOX_V3D First prototype of the time toolbox
 % Last modified: 18-04-04, 22:28, Alex
 % - see if nargin < 1 development part.
 % Last modified: April 20, 01:50, Alex
@@ -13,16 +13,13 @@ function varargout = timebox(varargin)
 % according to Pope. p. 69 and p. 680 it should work
 % Last modified: April 28, 2004, 12:00
 % - bug with uf, vf
-% Last modified: May 5, 2004, 01:31AM
-% - all units are in m/s, therefore 2pi should work
-% window length is introduced, as well as detrend and overlaping
-%
+% 
 
 if strcmp(inputname(1),'handles') 
     % GUI
     
     
-    fig = openfig(mfilename,'new');
+    fig = openfig(mfilename,'reuse');
     movegui(fig, 'center');
     
     % Generate a structure of handles to pass to callbacks, and store it. 
@@ -79,35 +76,41 @@ if strcmp(inputname(1),'handles')
     % Calculate u and v average velocities over spatial regions
     handles.umean = squeeze( handles.data.u(handles.data.i(1),handles.data.j(1),1:end-1) );
     handles.vmean = squeeze( handles.data.v(handles.data.i(1),handles.data.j(1),1:end-1) );
+    handles.wmean = squeeze( handles.data.w(handles.data.i(1),handles.data.j(1),1:end-1) );
     handles.ufmean = squeeze( handles.data.uf(handles.data.i(1),handles.data.j(1),1:end) );
     handles.vfmean = squeeze( handles.data.vf(handles.data.i(1),handles.data.j(1),1:end) );
+    handles.wfmean = squeeze( handles.data.wf(handles.data.i(1),handles.data.j(1),1:end) );
+
     
     for i = 2:length(handles.data.i)
         handles.umean  = (1/i)*(handles.umean*(i-1) + squeeze( handles.data.u(handles.data.i(i),handles.data.j(i),1:end-1)));
         handles.vmean  = (1/i)*(handles.vmean*(i-1) + squeeze( handles.data.v(handles.data.i(i),handles.data.j(i),1:end-1)));
+        handles.wmean  = (1/i)*(handles.wmean*(i-1) + squeeze( handles.data.w(handles.data.i(i),handles.data.j(i),1:end-1)));
         handles.ufmean = (1/i)*(handles.ufmean*(i-1) + squeeze( handles.data.uf(handles.data.i(i),handles.data.j(i),1:end)));
         handles.vfmean = (1/i)*(handles.vfmean*(i-1) + squeeze( handles.data.vf(handles.data.i(i),handles.data.j(i),1:end)));
+        handles.wfmean = (1/i)*(handles.wfmean*(i-1) + squeeze( handles.data.wf(handles.data.i(i),handles.data.j(i),1:end)));
     end
     
-    if handles.data.state3d
-        handles.wmean = squeeze( handles.data.w(handles.data.i(1),handles.data.j(1),1:end-1) );
-        handles.wfmean = squeeze( handles.data.wf(handles.data.i(1),handles.data.j(1),1:end) );
-        for i = 2:length(handles.data.i)
-            handles.wmean  = (1/i)*(handles.wmean*(i-1) + squeeze( handles.data.w(handles.data.i(i),handles.data.j(i),1:end-1)));
-            handles.wfmean = (1/i)*(handles.wfmean*(i-1) + squeeze( handles.data.wf(handles.data.i(i),handles.data.j(i),1:end)));
-        end
+    switch get(handles.velocity_component,'Value')
+        case 1 % u
+            handles.property  = handles.data.u(:,:,1:end-1); % we do not need the average
+            handles.mean_property = handles.umean;
+        case 2 % v
+            handles.property = handles.data.v(:,:,1:end-1);
+            handles.mean_property = handles.vmean;
+        case 3 % w
+            handles.property = handles.data.w(:,:,1:end-1);
+            handles.mean_property = handles.wmean;
+        case 4 % uf
+            handles.property  = handles.data.uf;
+            handles.mean_property = handles.ufmean;
+        case 5 % vf
+            handles.property  = handles.data.vf;
+            handles.mean_property = handles.vfmean;
+        case 6 % wf
+            handles.property  = handles.data.wf;
+            handles.mean_property = handles.wfmean;
     end
-
-    if handles.data.state3d
-        set(handles.velocity_component,'String','u|v|w|u''|v''|w''');
-    else
-        set(handles.velocity_component,'String','u|v|u''|v''');
-    end
-    
-    % Default values
-    handles.property  = handles.data.u(:,:,1:end-1); % we do not need the average
-    handles.mean_property = handles.umean;
-
     
     guidata(handles.fig, handles);
     update_time_axis(handles.fig,[],handles);
@@ -176,9 +179,9 @@ if get(handles.popupmenu_quantity,'Value') > 1
             set(h(find(cell2mat(get(h(:),'userdata'))< 0)),'linestyle',':');
             % clabel(cs,h,'fontsize',10,'color','r','rotation',0,'labelspacing',200)
         case {6,7,8} 
-            handles.spectrum_plot = loglog(handles.spectrum_xaxis,handles.quantity);
+            handles.spectrum_plot = loglog(handles.spectrum_xaxis,2*handles.quantity);
         case {2,3,4}
-            handles.spectrum_plot = plot(handles.spectrum_xaxis,handles.quantity);
+            handles.spectrum_plot = plot(handles.spectrum_xaxis,2*handles.quantity);
         otherwise
             errodlg('Wrong selection');
     end 
@@ -193,9 +196,7 @@ guidata(hObject, handles);
 function varargout = velocity_component_Callback(hObject, eventdata, handles)
 % Change velocity_component
 % handles.property = repmat(0,[size(handles.data.i),size(handles.data.u,3)]);
-
-if handles.data.state3d
-      switch get(handles.velocity_component,'Value')
+    switch get(handles.velocity_component,'Value')
         case 1 % u
             handles.property  = handles.data.u(:,:,1:end-1); % we do not need the average
             handles.mean_property = handles.umean;
@@ -215,23 +216,6 @@ if handles.data.state3d
             handles.property  = handles.data.wf;
             handles.mean_property = handles.wfmean;
     end
-else
-    switch get(handles.velocity_component,'Value')
-        case 1 % u
-            handles.property  = handles.data.u(:,:,1:end-1); % we do not need the average
-            handles.mean_property = handles.umean;
-        case 2 % v
-            handles.property = handles.data.v(:,:,1:end-1);
-            handles.mean_property = handles.vmean;
-        case 3 % uf
-            handles.property  = handles.data.uf;
-            handles.mean_property = handles.ufmean;
-        case 4 % vf
-            handles.property  = handles.data.vf;
-            handles.mean_property = handles.vfmean;
-    end
-end
-
 tmp = cellstr(get(hObject,'String'));
 handles.property_name = tmp{get(hObject,'Value')};
 guidata(hObject,handles);
@@ -292,8 +276,8 @@ function distribution_Callback(hObject, eventdata, handles)
 
 
 % --------------------------------------------------------------------
-function timebox_Callback(hObject, eventdata, handles)
-% hObject    handle to timebox (see GCBO)
+function timebox_v3d_Callback(hObject, eventdata, handles)
+% hObject    handle to timebox_v3d (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -340,7 +324,7 @@ switch get(handles.popupmenu_quantity,'Value')
             k = k + 1;
             tmp = 1/k*(tmp*(k-1) + crosscorr(squeeze(handles.property(handles.data.i(i),handles.data.j(i),:))));
         end
-        i = find(lags >= 0);
+        i = find(lags > 0);
         handles.quantity = tmp(i);
         handles.spectrum_xaxis = lags(i)*handles.data.dt;
         handles.spectrum_xlabel = 'Time lag [sec]';
@@ -357,10 +341,10 @@ switch get(handles.popupmenu_quantity,'Value')
                 tmp = 1/k*(tmp*(k-1)+ crosscorr(handles.property(uniqueI(i),handles.data.j(indx),j) ) );
             end
         end
-        i = find(lags >= 0);
-        handles.quantity = tmp(i)./tmp(i(1));   % normalize to 1.
-        handles.spectrum_xaxis = lags(i)*handles.data.dx;
-        handles.spectrum_xlabel = 'Lag [m]';
+        i = find(lags > 0);
+        handles.quantity = tmp(i);
+        handles.spectrum_xaxis = lags(i)*handles.data.scale*handles.data.gridX;
+        handles.spectrum_xlabel = 'Lag [mm]';
         handles.spectrum_ylabel = 'R_{ii}(x)';
         
     case 4 % autocorrelation in y
@@ -375,26 +359,27 @@ switch get(handles.popupmenu_quantity,'Value')
                 tmp = 1/k*(tmp*(k-1) + crosscorr(handles.property(handles.data.i(indx),uniqueJ(i),j) ) );
             end
         end
-        i = find(lags >= 0);
-        handles.quantity = tmp(i)./tmp(i(1));   % normalize to 1
-        handles.spectrum_xaxis = lags(i)*handles.data.dy;
-        handles.spectrum_xlabel = 'Lag [m]';
+        i = find(lags > 0);
+        handles.quantity = tmp(i);
+        handles.spectrum_xaxis = lags(i)*handles.data.scale*handles.data.gridY;
+        handles.spectrum_xlabel = 'Lag [mm]';
         handles.spectrum_ylabel = 'R_{ii}(y)';
         
     case 5 % cross-correlation
         ind = sub2ind(size(handles.property),handles.data.i,handles.data.j,ones(size(handles.data.i)));
+        %        Nice, but not correct.
         tmp = reshape(handles.property(ind),handles.rows,handles.cols);
+        %        tmp = repmat(0,[length(handles.ind),1]
         handles.quantity = corrcoef(tmp);     % 2-point covariance map;
-        for i = 2:handles.data.N
+        for i = 1:handles.data.N
             ind = sub2ind(size(handles.property),handles.data.i,handles.data.j,i*ones(size(handles.data.i)));
             tmp = reshape(handles.property(ind),handles.rows,handles.cols);
             handles.quantity = 1/i*(handles.quantity*(i-1) + corrcoef(tmp));     % averaging
         end
-        handles.quantity = handles.quantity./max(max(handles.quantity));
-        handles.spectrum_xaxis = (0:size(handles.quantity,1)-1)*handles.data.dx;
-        handles.spectrum_yaxis = (0:size(handles.quantity,2)-1)*handles.data.dy;
-        handles.spectrum_xlabel = 'Lag [m]';
-        handles.spectrum_ylabel = 'Lag [m]';
+        handles.spectrum_xaxis = (0:size(handles.quantity,1)-1)*handles.data.scale*handles.data.gridX;
+        handles.spectrum_yaxis = (0:size(handles.quantity,2)-1)*handles.data.scale*handles.data.gridY;
+        handles.spectrum_xlabel = 'Lag [mm]';
+        handles.spectrum_ylabel = 'Lag [mm]';
         
     case 6 % spectrum in t
         switch handles.method
@@ -403,29 +388,22 @@ switch get(handles.popupmenu_quantity,'Value')
                 for i = 2:length(handles.data.i)
                     tmp = 1/i*(tmp*(i-1) + crosscorr(squeeze(handles.property(handles.data.i(i),handles.data.j(i),:))));
                 end
-                i = find(lags >= 0);
-                tmp = 2*real(tmp(i))/length(tmp);
-                w = windowvector(length(tmp),get(handles.window,'Value'));
-                tmp = tmp(:).*w(:);
-                handles.quantity = (1/pi/handles.Fs)*real(fft(tmp,handles.nfft))./(w'*w);
+                i = find(lags > 0);
+                w = windowvector(length(tmp(i)),get(handles.window,'Value'));
+                tmp(i) = tmp(i).*w;
+                handles.quantity = real(fft(tmp(i),handles.nfft))./(w'*w);
                 handles.spectrum_xaxis = 2*pi*(0:ceil((handles.nfft+1)/2-1))*handles.Fs/handles.nfft;
                 handles.quantity = handles.quantity(1:ceil((handles.nfft+1)/2));
-                         handles.quantity = handles.quantity(2:end);
-         handles.spectrum_xaxis = handles.spectrum_xaxis(2:end);
             case 2 % psd
-                handles.quantity = 0;
                 for i = 1:length(handles.data.i)
                     tmp = handles.property(handles.data.i(i),handles.data.j(i),:);
-                    winlen = str2double(get(handles.edit_winlen,'String'));
-                    if winlen <= 0 & winlen > length(tmp), winlen = length(tmp(:)); end 
-                    w = windowvector(winlen,get(handles.window,'Value'));
-                    [pxx,handles.spectrum_xaxis] = psd_est(tmp,handles.nfft,w,handles.noverlap,handles.Fs,handles.detrend);
-                    handles.quantity = 1/i*(handles.quantity*(i-1) + pxx);
+                    w = windowvector(length(tmp(:)),get(handles.window,'Value'));
+                    [psd,handles.spectrum_xaxis] = psd_est(tmp,handles.nfft,w,handles.Fs,handles.detrend);
+                    handles.quantity = 1/i*(handles.quantity*(i-1) + psd);
                 end
         end
-         handles.quantity = handles.quantity(2:end);
-         handles.spectrum_xaxis = handles.spectrum_xaxis(2:end);
-        handles.spectrum_xlabel = 'Frequency [rad/sec]';
+        
+        handles.spectrum_xlabel = 'Frequency [1/sec]';
         handles.spectrum_ylabel = 'E_{ii}(f)';
     case 7 % spectrum in k1
         switch handles.method
@@ -441,38 +419,29 @@ switch get(handles.popupmenu_quantity,'Value')
                         tmp = 1/k*(tmp*(k-1) + crosscorr(handles.property(uniqueI(i),handles.data.j(indx),j) ) );
                     end
                 end
-                i = find(lags >= 0);
-                tmp = 2*real(tmp(i))/length(tmp);
-                w = windowvector(length(tmp),get(handles.window,'Value'));
-                tmp = tmp(:).*w(:);
-                handles.quantity = (1/pi/handles.Fs)*real(fft(tmp,handles.nfft))./(w'*w);
-                handles.spectrum_xaxis = 2*pi*(0:ceil((handles.nfft+1)/2-1))/(handles.data.dx)/handles.nfft;
+                i = find(lags > 0);
+                w = windowvector(length(tmp(i)),get(handles.window,'Value'));
+                tmp(i) = tmp(i).*w(:)';
+                handles.quantity = real(fft(tmp(i),handles.nfft))./(w'*w);
+                handles.spectrum_xaxis = 2*pi*(0:ceil((handles.nfft+1)/2-1))/(handles.data.scale*handles.data.gridX)/handles.nfft;
                 handles.quantity = handles.quantity(1:ceil((handles.nfft+1)/2));
-                         handles.quantity = handles.quantity(2:end);
-         handles.spectrum_xaxis = handles.spectrum_xaxis(2:end);
                 
             case 2 % psd
                 uniqueI = unique(handles.data.i);           % unique rows
                 indx = find(handles.data.i == uniqueI(1));
-                winlen = str2double(get(handles.edit_winlen,'String'));
-                    if winlen <= 0 & winlen > length(indx), winlen = length(indx); end 
-                    w = windowvector(winlen,get(handles.window,'Value'));
-%                w = windowvector(length(indx),get(handles.window,'Value'));
+                w = windowvector(length(indx),get(handles.window,'Value'));
                 [handles.quantity,handles.spectrum_xaxis] = psd_est(handles.property(uniqueI(1),handles.data.j(indx),1),...
-                    handles.nfft,w,handles.noverlap,handles.Fs,handles.detrend);
+                    handles.nfft,w,handles.Fs,handles.detrend);
                 k = 1;
                 for i = 2:length(uniqueI)                     % for each unique row
                     indx = find(handles.data.i == uniqueI(i));
                     for j = 1:handles.data.N
                         k = k + 1;
                         handles.quantity = 1/k*(handles.quantity*(k-1) + psd_est(handles.property(uniqueI(i),handles.data.j(indx),j),...
-                            handles.nfft,w,handles.noverlap,handles.Fs,handles.detrend));
+                            handles.nfft,w,handles.Fs,handles.detrend));
                     end
                 end
         end
-                 handles.quantity = handles.quantity(2:end);
-         handles.spectrum_xaxis = handles.spectrum_xaxis(2:end);
-
         handles.spectrum_xlabel = 'k_1 [rad/s]';
         handles.spectrum_ylabel = 'E_{ii}(k_1)';
         
@@ -488,42 +457,35 @@ switch get(handles.popupmenu_quantity,'Value')
                     indx = find(handles.data.j == uniqueJ(1));
                     for j = 1:handles.data.N
                         k = k + 1;
-                        tmp = 1/k*(tmp*(k-1) + crosscorr(handles.property(handles.data.i(indx),uniqueJ(i),j)));
+                        tmp = 1/k*(tmp*(k-1) + crosscorr(handles.property(handles.data.i(indx),uniqueJ(i),j) ) );
                     end
                 end
-                i = find(lags >= 0);
-                tmp = 2*real(tmp(i))/length(tmp);
-                w = windowvector(length(i),get(handles.window,'Value'));
-                tmp = tmp(:).*w(:);
-                handles.quantity = (1/pi/handles.Fs)*real(fft(tmp,handles.nfft))./(w'*w);
-                handles.spectrum_xaxis = 2*pi*(0:ceil((handles.nfft+1)/2-1))/(handles.data.dy)/handles.nfft;
+                i = find(lags > 0);
+                w = windowvector(length(tmp(i)),get(handles.window,'Value'));
+                tmp(i) = tmp(i).*w(:);
+                handles.quantity = real(fft(tmp(i),handles.nfft))./(w'*w);
+                handles.spectrum_xaxis = 2*pi*(0:ceil((handles.nfft+1)/2-1))/(handles.data.scale*handles.data.gridY)/handles.nfft;
                 handles.quantity = handles.quantity(1:ceil((handles.nfft+1)/2));
-                         handles.quantity = handles.quantity(2:end);
-         handles.spectrum_xaxis = handles.spectrum_xaxis(2:end);
                 
             case 2 % psd
                 
                 uniqueJ = unique(handles.data.j);           % unique rows
                 indx = find(handles.data.j == uniqueJ(1));
-%                 w = windowvector(length(indx),get(handles.window,'Value'));
-                winlen = str2double(get(handles.edit_winlen,'String'));
-                if winlen <= 0 & winlen > length(indx), winlen = length(indx); end 
-                w = windowvector(winlen,get(handles.window,'Value'));
+                w = windowvector(length(indx),get(handles.window,'Value'));
+                
                 [handles.quantity,handles.spectrum_xaxis] = psd_est(handles.property(handles.data.i(indx),uniqueJ(1),1),...
-                    handles.nfft,w,handles.noverlap,handles.Fs,handles.detrend);
+                    handles.nfft,w,handles.Fs,handles.detrend);
                 k = 1;
                 for i = 2:length(uniqueJ)                     % for each unique row
                     indx = find(handles.data.j == uniqueJ(1));
                     for j = 1:handles.data.N
                         k = k + 1;
                         handles.quantity = 1/k*(handles.quantity*(k-1) + psd_est(handles.property(handles.data.i(indx),uniqueJ(i),j),...
-                            handles.nfft,w,handles.noverlap,handles.Fs,handles.detrend));
+                            handles.nfft,w,handles.Fs,handles.detrend));
                     end
                 end
         end
-         handles.quantity = handles.quantity(2:end);
-         handles.spectrum_xaxis = handles.spectrum_xaxis(2:end);
-
+        
         handles.spectrum_xlabel = 'k_2 [rad/s]';
         handles.spectrum_ylabel = 'E_{ii}(k_2)';
 
@@ -605,13 +567,11 @@ function pushbutton_calc_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 set(handles.text_tip,'String','Calculating ...');
-set(handles.fig,'Pointer','watch');
 calculate_quantity(hObject,[],guidata(handles.fig));
 set(handles.text_tip,'String','Plotting ...');
 % handles = guihandles(hObject);
 update_spectrum_axis(hObject,[],guidata(handles.fig));
 set(handles.text_tip,'String','Ready ...');
-set(handles.fig,'Pointer','arrow');
 guidata(handles.fig,handles);
 
 
@@ -625,6 +585,19 @@ function popupmenu_quantity_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+%--------------------------------------------------------------------------
+function [c,lags] = crosscorr(a,b)
+% Calculates Cross-Correlation with
+% the Mathwork's built-in filter() function
+% Based on CONV
+%
+if nargin == 1
+    b = a;
+end
+na = length(a);
+a(2*na-1) = 0;
+c = filter(b(end:-1:1), 1, a);
+lags = [-(na-1):na-1];
 
 
 
@@ -709,7 +682,6 @@ if nargin < 6 | isempty(detrendflag)
 end
 
 % compute PSD
-x = x(:);
 window = window(:);
 n = length(x);		    
 nwind = length(window); 
@@ -756,8 +728,8 @@ if rem(nfft,2),    % nfft odd
 else
     indx = (1:nfft/2+1)';
 end
-pxx = pxx(indx)/Fs/pi;
-freq_vector = (indx-1)*Fs/nfft*2*pi;
+pxx = pxx(indx);
+freq_vector = (indx-1)*Fs/nfft;
 % [EOF] psd_est
 
 
@@ -845,10 +817,7 @@ hl = findobj(handles.time_axes,'type','line');
 if ~isempty(hl)
     xd = get(hl,'xdata');
     yd = get(hl,'ydata');
-    if ~iscell(xd) 
-        matr(:,1)  =  xd(:);
-        matr(:,2)  =  yd(:);
-    elseif isequal(xd{1},xd{2})
+    if isequal(xd{1},xd{2})
         matr(:,1) = [xd{1}]';
         for i = 1:length(hl), 
             matr(:,i+1) = [yd{i}]';
@@ -883,10 +852,7 @@ hl = findobj(handles.spectrum_axes,'type','line');
 if ~isempty(hl)
     xd = get(hl,'xdata');
     yd = get(hl,'ydata');
-    if ~iscell(xd) 
-        matr(:,1)  =  xd(:);
-        matr(:,2)  =  yd(:);
-    elseif isequal(xd{1},xd{2})
+    if isequal(xd{1},xd{2})
         matr(:,1) = [xd{1}]';
         for i = 1:length(hl), 
             matr(:,i+1) = [yd{i}]';
@@ -927,9 +893,6 @@ else
     set(hObject,'BackgroundColor',get(0,'defaultUicontrolBackgroundColor'));
 end
 
-% --- Executes during object creation, after setting all properties.
-function export_Callback(hObject, eventdata, handles)
-
 
 
 function edit_winlen_Callback(hObject, eventdata, handles)
@@ -939,97 +902,5 @@ function edit_winlen_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of edit_winlen as text
 %        str2double(get(hObject,'String')) returns contents of edit_winlen as a double
-
-
-function [c,lags] = crosscorr(a,b)
-% XCORRF - replaced CROSSCORR due to 
-% slow performance with long time series
-%
-% Based on XCORRF2.M 
-%
-if nargin == 1
-    b = a;
-end
-a = a(:);
-b = b(:);
-na = length(a);
-nb = length(b);
-% make reverse conjugate of one array
-b = conj(b(nb:-1:1));
-% use power of 2 transform lengths
-nf = 2^nextpow2(na+nb);
-% take Fourier transform with zero padding
-at =  fft(a,nf);
-bt =  fft(b,nf);
-% multiply transforms then inverse transform
-c = ifft(at.*bt);
-%  trim to standard size (2*N-1)
-c(na+nb:nf) = [];
-lags = [-(na-1):na-1];
-
-% % %--------------------------------------------------------------------------
-% % function [c,lags] = crosscorr(a,b)
-% % % Calculates Cross-Correlation with
-% % % the Mathwork's built-in filter() function
-% % % Based on CONV
-% % %
-% % if nargin == 1
-% %     b = a;
-% % end
-% % na = length(a);
-% % a(2*na-1) = 0;
-% % c = filter(b(end:-1:1), 1, a);
-% % lags = [-(na-1):na-1];
-
-
-% --------------------------------------------------------------------
-function export2csv_Callback(hObject, eventdata, handles)
-% hObject    handle to export2csv (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-
-% --------------------------------------------------------------------
-function export2matlab_Callback(hObject, eventdata, handles)
-% hObject    handle to export2matlab (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-
-% --------------------------------------------------------------------
-function timeplot2figure_Callback(hObject, eventdata, handles)
-% hObject    handle to timeplot2figure (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles.export_figure = figure;
-% handles.export_axes   = axes;
-copyobj(handles.time_axes,handles.export_figure);
-% copyobj(get(handles.axes_main,'Children'),handles.export_axes);
-
-set(handles.export_figure,'Units','normalized');
-set(get(handles.export_figure,'children'),'Units','normalized');
-set(get(handles.export_figure,'children'),'Position',[0.13 0.11 0.775 0.815]);
-set(get(handles.export_figure,'children'),'Box','on');
-
-guidata(handles.fig, handles);
-
-
-% --------------------------------------------------------------------
-function spectrum2figure_Callback(hObject, eventdata, handles)
-% hObject    handle to spectrum2figure (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-handles.export_figure = figure;
-% handles.export_axes   = axes;
-copyobj(handles.spectrum_axes,handles.export_figure);
-% copyobj(get(handles.axes_main,'Children'),handles.export_axes);
-
-set(handles.export_figure,'Units','normalized');
-set(get(handles.export_figure,'children'),'Units','normalized');
-set(get(handles.export_figure,'children'),'Position',[0.13 0.11 0.775 0.815]);
-set(get(handles.export_figure,'children'),'Box','on');
-
-guidata(handles.fig, handles);
 
 
