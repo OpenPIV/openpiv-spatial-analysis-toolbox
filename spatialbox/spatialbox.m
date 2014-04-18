@@ -686,7 +686,7 @@ if isfield(handles,'colorbar') && get(handles.checkbox_colorbar,'Value') == 1
     
 end
 
-% set(gca,'ydir','reverse');
+set(gca,'ydir','reverse');
 guidata(handles.fig,handles);
 
 % --------------------------------------------------------------------
