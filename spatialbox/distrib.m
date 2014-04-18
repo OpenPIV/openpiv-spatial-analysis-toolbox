@@ -69,16 +69,20 @@ if nargin == 1  % LAUNCH GUI
     end
     % --------------------------------
     
-    handles.leftX = min(handles.data.j);
-    handles.rightX = max(handles.data.j) ; %;(length(handles.data.j));
-    handles.bottomY = size(handles.data.y,1) - min(handles.data.i) + 1;
-    handles.topY = size(handles.data.y,1) - max(handles.data.i) + 1; %handles.data.i(length(handles.data.i));
+    handles.minx   = min(handles.data.j);
+    handles.maxx  = max(handles.data.j);
+    handles.miny = min(handles.data.i);
+    handles.maxy    = max(handles.data.i); 
+    
+    % handles.bottomY = size(handles.data.y,1) - min(handles.data.i) + 1;
+    % handles.topY = size(handles.data.y,1) - max(handles.data.i) + 1; %handles.data.i(length(handles.data.i));
     
     handles.swap = 0;   % default - no swap;
     handles.legend = 0; % default - no legend;
+    handles.reverse_y = 0; % normal y direction
     
     handles.hold = 0;
-    handles.displayname = cellstr(num2str(handles.data.y(handles.topY:handles.bottomY,1)));
+    handles.displayname = cellstr(num2str(handles.data.y(handles.miny:handles.maxy,1)));
     
     
     if length(unique(handles.data.j)) <= length(unique(handles.data.i))
@@ -125,23 +129,23 @@ val  =  get(handles.UpdateGraph,'Value');
 
 switch val
     case 1
-        x = handles.data.x(1,handles.leftX:handles.rightX);
+        x = handles.data.x(1,handles.minx:handles.maxx);
         x_label = (['x ',handles.data.xUnits]); % 'x [m]';
         y = handles.property';
         % y = y(~isnan(y(:,1)),:);
         y_label = strcat(handles.data.previous_quantity,'  ',handles.data.units);
         xa = x;
         ya = no_nan_mean(handles.property);
-        handles.displayname = cellstr(num2str(handles.data.y(handles.topY:handles.bottomY,1)));
+        handles.displayname = cellstr(num2str(handles.data.y(handles.miny:handles.maxy,1)));
     case 2
-        y = handles.data.y(handles.topY:handles.bottomY,1);
+        y = handles.data.y(handles.miny:handles.maxy,1);
         y_label = (['y ',handles.data.xUnits]); % 'y [m]';
         x = handles.property;
         % x = x(:,~isnan(x(1,:)));
         x_label = strcat(handles.data.previous_quantity,'  ',handles.data.units);
         xa = no_nan_mean(handles.property')';
         ya = y;
-        handles.displayname = cellstr(num2str(handles.data.x(1,handles.leftX:handles.rightX)'));
+        handles.displayname = cellstr(num2str(handles.data.x(1,handles.minx:handles.maxx)'));
 end
 
 if handles.swap
@@ -174,18 +178,24 @@ if get(handles.AvgCheckbox,'Value') == get(handles.AvgCheckbox,'Max')
     ylabel(y_label);
 end;
 grid on;
+
 if handles.legend
     legend('show');
 else
     legend('hide');
 end
+
+if handles.reverse_y == 1
+    set(gca,'ydir','reverse')
+else
+    set(gca,'ydir','normal');
+end
+
 % plotedit on;
 
 
-
-
 % --------------------------------------------------------------------
-function SwapXY_Callback(h, eventdata, handles, varargin)
+function SwapXY_Callback(h, ~, handles, varargin)
 if (get(h,'Value')  ==  get(h,'Max'))
     handles.swap = 1;
     
@@ -200,18 +210,18 @@ UpdateGraph_Callback(gcbo,[],guidata(gcbo));
 
 % --------------------------------------------------------------------
 % --- Executes on button press in pushbutton_close.
-function pushbutton_close_Callback(hObject, eventdata, handles)
+function pushbutton_close_Callback(h, eventdata, handles, varargin) %#ok<INUSL>
 delete(handles.fig);
 
 % --------------------------------------------------------------------
 % --- Executes on button press in AvgCheckbox.
-function AvgCheckbox_Callback(hObject, eventdata, handles)
+function AvgCheckbox_Callback(h, eventdata, handles, varargin)
 UpdateGraph_Callback(gcbo,[],guidata(gcbo));
 
 
 
 % --- Executes on button press in SnglCheckbox.
-function SnglCheckbox_Callback(hObject, eventdata, handles)
+function SnglCheckbox_Callback(h, eventdata, handles, varargin) %#ok<*INUSD>
 % hObject    handle to SnglCheckbox (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -222,7 +232,7 @@ UpdateGraph_Callback(gcbo,[],guidata(gcbo));
 
 % --------------------------------------------------------------------
 % --- Executes on button press in savecsv.
-function savecsv_Callback(hObject, eventdata, handles)
+function savecsv_Callback()
 % hObject    handle to savecsv (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -360,6 +370,24 @@ else
     % checkbox is not checked-take approriate action
     handles.legend = 0;
     
+end
+guidata(gcbo,handles);
+UpdateGraph_Callback(gcbo,[],guidata(gcbo));
+
+
+% --- Executes on button press in reverse_y.
+function reverse_y_Callback(hObject, ~, handles)
+% hObject    handle to reverse_y (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of reverse_y
+
+if (get(hObject,'Value')  ==  get(hObject,'Max'))
+    handles.reverse_y = 1;
+else
+    % checkbox is not checked-take approriate action
+    handles.reverse_y = 0;
 end
 guidata(gcbo,handles);
 UpdateGraph_Callback(gcbo,[],guidata(gcbo));
