@@ -14,7 +14,7 @@ if nargin == 0   % LAUNCH GUI
     addpath(current_path);
     
     fig = openfig(mfilename,'reuse','invisible');
-    movegui(fig,'center')
+    movegui(fig,'center');
     
     % Generate a structure of handles to pass to callbacks, and store it.
     handles = guihandles(fig);
@@ -27,6 +27,7 @@ if nargin == 0   % LAUNCH GUI
     
     handles.fig = fig;
     handles.previous_quantity = '-';
+    
     orighandles = handles;          % backup for the later re-opening of the data
     guidata(handles.fig, handles);
     
@@ -1557,7 +1558,7 @@ guidata(handles.fig,handles);
 
 
 % --- Executes on button press in pushbutton_selectreg.
-function pushbutton_selectreg_Callback(~, ~, handles)
+function pushbutton_select_region_Callback(~, ~, handles)
 % check if all selected is off
 set(handles.pushbutton_selectpoints,'Enable','off');
 set(handles.colpushbutton,'Enable','off');
@@ -1572,16 +1573,48 @@ rbbox;
 point2  =    get(gca,'CurrentPoint');    % button up detected
 point1  =    point1(1,1:2);              % extract x and y
 point2  =    point2(1,1:2);
-p1      =    min(point1,point2);             % calculate locations
-offset  =    abs(point1-point2);         % and dimensions
+p1      =    min(point1,point2);         % for the rectangle
+offset  =    abs(point1-point2);         % plot, see below
 
 
 % -------------- calculate columns & rows ------------------
-[~,row] = min(abs(handles.y(:,1) - p1(2)));
-[~,col] = min(abs(handles.x(1,:) - p1(1)));
 
-offsetx = fix(offset(1)/handles.gridX);
-offsety = fix(offset(2)/handles.gridY);
+x1 = point1(1);
+y1 = point1(2);
+x2 = point2(1);
+y2 = point2(2); 
+
+
+% convert the points into the rows, cols by nearest neighbour
+[~,y1] = min(abs(handles.y(:,1) - y1));
+[~,x1] = min(abs(handles.x(1,:) - x1));
+[~,y2] = min(abs(handles.y(:,1) - y2));
+[~,x2] = min(abs(handles.x(1,:) - x2));
+
+% discover the min, max
+minx = min(x1,x2);
+maxx = max(x1,x2);
+miny = min(y1,y2);
+maxy = max(y1,y2);
+
+
+minx = max(minx,1);
+miny = max(miny,1);
+maxx = min(maxx,length(handles.x(1,:)));
+maxy = min(maxy,length(handles.y(:,1)));
+
+offsetx = (maxx-minx);
+offsety = (maxy-miny);
+
+
+% [~,uprowY] = min(abs(handles.y(:,1) - p1(2)));
+% [~,leftcolX] = min(abs(handles.x(1,:) - p1(1)));
+% 
+% [~,bottom] = min(abs(handles.y(:,1) - p1(2)));
+% [~,col] = min(abs(handles.x(1,:) - p1(1)));
+% 
+% offsetx = fix(offset(1)/handles.gridX);
+% offsety = fix(offset(2)/handles.gridY);
 
 
 % leftcolX = fix(( p1(1)-limX(1,1) )/ handles.gridX +1) + 1;
@@ -1589,21 +1622,21 @@ offsety = fix(offset(2)/handles.gridY);
 % bottomrowY =  fix(( p1(2)-limY(1,1) )/ handles.gridY+1 )+1;
 % uprowY = fix(( p1(2) + offset(2) - limY(1,1) )/ handles.gridY)+1;
 
-leftcolX = col;
-rightcolX = col + offsetx;
-uprowY = row; 
-bottomrowY = row - offsety;
+% leftcolX = col;
+% rightcolX = col + offsetx;
+% uprowY = row; 
+% bottomrowY = row - offsety;
 
 
 
 % -------boundary check ----------------
 
-[uprowLimit,rightLimit] = size(handles.x);
-
-if leftcolX < 1, leftcolX = 1; end
-if rightcolX > rightLimit, rightcolX = rightLimit; end
-if bottomrowY < 1, bottomrowY = 1; end
-if uprowY > uprowLimit, uprowY = uprowLimit; end
+% [uprowLimit,rightLimit] = size(handles.x);
+% 
+% if leftcolX < 1, leftcolX = 1; end
+% if rightcolX > rightLimit, rightcolX = rightLimit; end
+% if bottomrowY < 1, bottomrowY = 1; end
+% if uprowY > uprowLimit, uprowY = uprowLimit; end
 
 % --------- selection checking ---------------
 sizeI = size(handles.i,1);
@@ -1615,32 +1648,43 @@ numofcols = offsetx + 1; % rightcolX - leftcolX + 1;
 % -------------- errorchecking --------
 if ~isempty(handles.previousSel)
     a = handles.previousSel;
-    if ((rightcolX-leftcolX) == a(2)-a(1) && a(2) == rightcolX && handles.rowlock~=1)
-        handles.columnlock=1;
-    elseif    ((uprowY-bottomrowY)==a(4)-a(3) && a(4)==uprowY && handles.columnlock~=1)
-        handles.rowlock=1;
+    if ((maxx - minx) == a(2) - a(1) && ...
+        a(2) == maxx && handles.rowlock ~= 1)
+        handles.columnlock = 1;
+    elseif    ((maxy - miny) == a(4) - a(3) && ...
+            a(4) == maxy && handles.columnlock ~= 1)
+        handles.rowlock = 1;
     else
         errordlg('Your Selection is Invalid...');
         return
     end
 
 
-    if ismember([bottomrowY leftcolX],[handles.i handles.j],'rows') ...
-            || ismember([bottomrowY rightcolX],[handles.i handles.j],'rows') ...
-            || ismember([uprowY leftcolX],[handles.i handles.j],'rows') ...
-            || ismember([uprowY rightcolX],[handles.i handles.j],'rows')
+%     if ismember([bottomrowY leftcolX],[handles.i handles.j],'rows') ...
+%             || ismember([bottomrowY rightcolX],[handles.i handles.j],'rows') ...
+%             || ismember([uprowY leftcolX],[handles.i handles.j],'rows') ...
+%             || ismember([uprowY rightcolX],[handles.i handles.j],'rows')
+%         errordlg('Your Selection is Invalid...');
+%         return;
+%     end
+    
+    if ismember([miny minx],[handles.i handles.j],'rows') ...
+            || ismember([maxy maxx],[handles.i handles.j],'rows') ...
+            || ismember([maxy minx],[handles.i handles.j],'rows') ...
+            || ismember([miny maxx],[handles.i handles.j],'rows')
         errordlg('Your Selection is Invalid...');
         return;
     end
+    
 end
 
 
 
 % --------------------- Fill loop ----------------------------
 
-for i1 = bottomrowY:uprowY
+for i1 = miny:maxy
     handles.i(sizeI+1:sizeI+numofcols,1)    =   i1;
-    handles.j(sizeJ+1:sizeJ+numofcols,1)    =   leftcolX:rightcolX;
+    handles.j(sizeJ+1:sizeJ+numofcols,1)    =   minx:maxx;
     sizeI   =   sizeI+numofcols;
     sizeJ   =   sizeJ+numofcols;
 end
@@ -1654,14 +1698,14 @@ end
 
 % x1 = [lx_box rx_box rx_box lx_box lx_box];
 % y1 = [by_box by_box uy_box uy_box by_box];
-if all(offset > 0)
+if offsetx > 0 && offsety > 0
     hold on
     % handles.selectionbox = plot(x1,y1,'--b','LineWidth',1.5);
     handles.selectionbox = rectangle('Position',[p1 offset]);
     set(handles.selectionbox,'EdgeColor','b','LineStyle','--','LineWidth',1.5);
     hold off
 end
-handles.previousSel=[leftcolX rightcolX uprowY bottomrowY ];
+handles.previousSel=[minx maxx miny maxy ];
 
 guidata(handles.fig,handles);
 
