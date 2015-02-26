@@ -2517,7 +2517,7 @@ try
     if orderX == -3 || orderX == -4,
         handles.xUnits = 'mm';
         handles.velUnits = 'm/s';
-    elseif orderX >= 0
+    elseif orderX >= 0 || all(mod(handles.x(:),2))
         handles.xUnits = 'pix';
         handles.velUnits = 'pix/dt';
     end
