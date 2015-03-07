@@ -2421,6 +2421,7 @@ try
     
     fid = fopen(handles.files{1},'r');
     firstline = fgetl(fid);
+    fclose(fid);
     if isnan(str2double(strtok(firstline)))
         error('Different TXT format, try using VEC loader');
     else
