@@ -1,7 +1,7 @@
 OpenPIV Spatial Analysis Toolbox
 ++++++++++++++++++++++++++++++++
 
-Warning
+Warning (Matlab R2014b is bad)
 -------
 
 Spatial Toolbox does not work on Matlab R2014b due to Matlab's backward incompatibility. Versions 2014a and below are supported.
