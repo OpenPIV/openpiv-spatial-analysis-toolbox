@@ -18,6 +18,7 @@ if nargin == 0   % LAUNCH GUI
     
     % Generate a structure of handles to pass to callbacks, and store it.
     handles = guihandles(fig);
+   
     
     % Global several long strings
     handles.inst_list = '-|u|v|(u^2+v^2)^(1/2)|vorticity|sxx=du/dx|du/dy|dv/dx|syy=dv/dy|du/dx+dv/dy|sxy';
@@ -35,7 +36,9 @@ if nargin == 0   % LAUNCH GUI
     set(fig,'Color',get(0,'defaultUicontrolBackgroundColor'));
     
     
+    % add axes_main
     
+    handles.axes_main = get(handles.figure_gradpiv,'CurrentAxes');
     guidata(handles.fig, handles);
     
     if nargout > 0
@@ -514,7 +517,7 @@ update_gui(handles.fig,[],handles);
 function update_gui(~, ~, handles, varargin)
 % update_gui is responsible for update of the screen with current property and contour type
 
-axes(handles.axes_main); %#ok<MAXES>
+axes(handles.axes_main);
 delete(get(handles.axes_main,'children'));
 
 if get(handles.popupmenu_quantity,'Value') == 1 ,
