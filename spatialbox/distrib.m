@@ -26,6 +26,8 @@ if nargin == 1  % LAUNCH GUI
     %     handles.distribHandle   = fig;
     handles.data            = varargin{1};
     
+    handles.ax = get(handles.fig,'CurrentAxes');
+    
     % --------------  Process only selected region---
     MatrixLeftMove  = min(handles.data.i)-1;
     MatrixUpMove    = min(handles.data.j)-1;
@@ -165,7 +167,9 @@ end
 cla reset;
 % ---------------------- Single is checked------------------
 if get(handles.SnglCheckbox,'Value') == 1
-    plot(x,y,'DisplayName',handles.displayname);
+    % plot(x,y,'DisplayName',handles.displayname);
+    htmp = plot(handles.ax,x,y);
+    set(htmp,{'DisplayName'},handles.displayname);
     xlabel(x_label);
     ylabel(y_label);
 end
