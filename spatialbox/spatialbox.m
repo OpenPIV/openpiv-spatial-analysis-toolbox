@@ -516,6 +516,7 @@ function update_gui(~, ~, handles, varargin)
 
 axes(handles.axes_main); %#ok<MAXES>
 delete(get(handles.axes_main,'children'));
+ydir = get(handles.axes_main,'ydir');
 
 if get(handles.popupmenu_quantity,'Value') == 1 ,
     set(handles.checkbox_label,'Enable','Off');
@@ -687,7 +688,7 @@ if isfield(handles,'colorbar') && get(handles.checkbox_colorbar,'Value') == 1
     
 end
 
-% set(gca,'ydir','reverse');
+set(handles.axes_main,'ydir',ydir);
 guidata(handles.fig,handles);
 
 % --------------------------------------------------------------------
@@ -2399,7 +2400,7 @@ end
 
 try
     % [gui_files,gui_path] = uigetfile('*.txt','Select the location and the type of the TXT file');
-    handles.files = uipickfiles('FilterSpec',fullfile(gui_path,'*.*')); % April 2, 2010, AL
+    handles.files = uipickfiles('FilterSpec',fullfile(gui_path,'*.txt'),'REFilter','[^flt]\.txt'); % April 2, 2010, AL
     
     
     
@@ -2674,6 +2675,9 @@ set(handles.fig,'pointer','arrow');
 
 % added on 10.04.06 for R12SP3 version
 handles.axpos = get(handles.axes_main,'Position');
+
+% set Y axis direction opposite as the Matlab flips the image
+set(handles.axes_main,'ydir','reverse');
 
 % Update all handles structure
 guidata(handles.fig,handles);
