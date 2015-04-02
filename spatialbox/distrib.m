@@ -79,7 +79,8 @@ if nargin == 1  % LAUNCH GUI
     
     handles.swap = 0;   % default - no swap;
     handles.legend = 0; % default - no legend;
-    handles.reverse_y = 0; % normal y direction
+    
+    handles.reverse_y = isequal(get(handles.data.axes_main,'ydir'),'reverse'); % normal y direction
     
     handles.hold = 0;
     handles.displayname = cellstr(num2str(handles.data.y(handles.miny:handles.maxy,1)));
