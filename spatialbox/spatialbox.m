@@ -1204,7 +1204,8 @@ try
                     handles.v(:,:,i) = d(:,:,4);
                 end
                 clear d
-            elseif ~isempty(findstr(lower(handles.files{1}),'txt')) % new files, created for stratified
+            elseif ~isempty(findstr(lower(handles.files{1}),'txt')) 
+                % new files, created for stratified
                 % project, probably by Zach Taylor version of OpenPIV C++
                 % the format is different from our ".txt" files which have
                 % no headers, and different from VEC format of Insight 3G,
@@ -1786,8 +1787,8 @@ update_gui(gcbo,[],guidata(gcbo));
 % --- Executes during object creation, after setting all properties.
 function figure_gradpiv_CreateFcn(hObject, ~, ~)
 
-load cil_logo
-image(im,'Parent',findobj(hObject,'type','axes')); %handles.axes_main);
+logo = load('cil_logo'); % there was some unclear bug by using a reserved name 'im'
+image(logo.im,'Parent',findobj(hObject,'type','axes')); %handles.axes_main);
 axis off
 
 
