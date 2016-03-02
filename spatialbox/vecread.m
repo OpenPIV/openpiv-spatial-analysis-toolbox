@@ -135,7 +135,7 @@ j = findstr(hdr,'j=');
 
 i = eval(i); j = eval(j);
 
-data = reshape(data,[i,j,columns]);
+data = reshape(data,[j,i,columns]); % modified
 data = permute(data,[2 1 3]);
 
 if nargout == 1
