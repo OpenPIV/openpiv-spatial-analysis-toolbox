@@ -1742,7 +1742,7 @@ update_gui(gcbo,[],guidata(gcbo));
 function figure_gradpiv_CreateFcn(hObject, ~, ~)
 
 load cil_logo
-image(im,'Parent',findobj(hObject,'type','axes')); %handles.axes_main);
+image(img,'Parent',findobj(hObject,'type','axes')); %handles.axes_main);
 axis off
 
 
