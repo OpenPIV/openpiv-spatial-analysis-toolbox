@@ -122,7 +122,7 @@ try
     xUnits = variables(ind(1)+2:ind(2)-1);
     uUnits = variables(ind(5)+2:ind(6)-1);
 catch
-    columns = 4;
+    columns = 5;
     xUnits = '';
     uUnits = '';
 end
