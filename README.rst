@@ -1,11 +1,14 @@
-OpenPIV Spatial Analysis Toolbox
-++++++++++++++++++++++++++++++++
+repository for OpenPIV Spatial Analysis Toolbox
++++++++++++++++++++++++++++++++++++++++++++++++
 
-Warning (Matlab R2014b is bad)
--------
+Warning!!!
+----------
 
-Spatial Toolbox does not work on Matlab R2014b due to Matlab's backward incompatibility. Versions 2014a and below are supported.
+This specific R2014b branch is different and not yet fully tested
 
+
+What is it?
+------------
 
 + Spatial Analysis Toolbox is a collection of Matlab (tm) by Mathworks Inc. subroutines and GUI (also written in Matlab)  that streamlines the post-processing of the PIV (particle image velocimetry) data obtained using OpenPIV or other software (e.g. Insight 3G, 4G from TSI Inc., DaVis from Lavision, VIDPIV, MATPIV, etc.)
 
@@ -30,9 +33,7 @@ Developers
 
 Ideas and implementation:
 
-Dr. Roi Gurka, https://github.com/roigurka
-
-Dr. Alex Liberzon, https://github.com/alexlib
-
+Roi Gurka,
+Alex Liberzon
 Denis Lepchev 
 
