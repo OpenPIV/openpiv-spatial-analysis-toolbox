@@ -161,7 +161,9 @@ end
 cla reset;
 % ---------------------- Single is checked------------------
 if get(handles.SnglCheckbox,'Value') == 1
-    plot(x,y,'DisplayName',handles.displayname);
+    for jj = 1:size(y,2)
+        plot(x,y(:,jj),'DisplayName',char(handles.displayname{jj}));
+    end
     xlabel(x_label);
     ylabel(y_label);
 end
@@ -276,6 +278,7 @@ function export2figure_Callback(hObject, eventdata, handles)
 
 handles.export_figure = figure;
 % handles.export_axes   = axes;
+handles.axes1 = get(handles.fig,'CurrentAxes');
 copyobj(handles.axes1,handles.export_figure);
 % copyobj(get(handles.axes_main,'Children'),handles.export_axes);
 

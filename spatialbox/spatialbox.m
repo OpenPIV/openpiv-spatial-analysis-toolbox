@@ -513,6 +513,7 @@ update_gui(handles.fig,[],handles);
 function update_gui(~, ~, handles, varargin)
 % update_gui is responsible for update of the screen with current property and contour type
 
+handles.axes_main = get(handles.fig,'currentaxes');
 axes(handles.axes_main); %#ok<MAXES>
 delete(get(handles.axes_main,'children'));
 
@@ -671,7 +672,11 @@ xlabel(['x ',handles.xUnits]); % [m]');
 ylabel(['y ',handles.xUnits]); % 'y [m]');
 
 if isfield(handles,'colorbar') && get(handles.checkbox_colorbar,'Value') == 1
-    axpos = handles.axpos; % 10.04.06
+    
+    if ~isfield(handles,'axpos')
+        handles.axpos = get(handles.axes_main,'position');
+    end
+        axpos = handles.axpos;
     set(handles.axes_main,'Units','normalized','Position',...
         [axpos(1),axpos(2),axpos(3)-.025,axpos(4)]);
     if ishandle(handles.colorbar)
