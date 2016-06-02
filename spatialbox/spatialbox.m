@@ -26,6 +26,9 @@ if nargin == 0   % LAUNCH GUI
     handles.fluct_mean_list = '-|u rms|v rms|Reynolds stress|Turb. intensity (u) |Turb. intensity (v)|Dissipation|Turb. Energy Production|TKE|Enstropy';
     
     handles.fig = fig;
+    if ~isfield(handles,'axes_main')
+      handles.axes_main = get(handles.fig,'CurrentAxes');
+    end
     handles.previous_quantity = '-';
     orighandles = handles;          % backup for the later re-opening of the data
     guidata(handles.fig, handles);
@@ -2322,6 +2325,7 @@ set(handles.pushbutton_select,'Enable','on');
 set(handles.fig,'pointer','arrow');
 
 % added on 10.04.06 for R12SP3 version
+
 handles.axpos = get(handles.axes_main,'Position');
 
 % Update all handles structure
