@@ -1,7 +1,7 @@
 % SPATIALBOX - main GUI file, created by GUIDE
 %
 
-% Copyright (c) 1998-2014 OpenPIV group
+% Copyright (c) 1998-2016 OpenPIV group
 % See the file license.txt for copying permission.
 
 function varargout = spatialbox(varargin)
