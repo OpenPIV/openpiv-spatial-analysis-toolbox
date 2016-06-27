@@ -22,9 +22,7 @@ function [varargout] = vecread(varargin)
 
 % Created: 21-May-2001
 % Author: Alex Liberzon
-% E-Mail : liberzon@tx.technion.ac.il
-% Phone : +972 (0)48 29 3861
-% Copyright (c) 2001 Technion - Israel Institute of Technology
+% Copyright (c) 2001 - 2016 OpenPIV 
 %
 % Modified at: 21-May-2001
 % $Revision: 1.0 $  $Date: 21-May-2001 09:36:48$
@@ -113,7 +111,7 @@ chdata=chdat(char1:count);
 try
     variables = hdr(findstr(hdr,'variables=')+length('variables='):findstr(hdr,'chc')+4); % '"chc"
     % columns = length(findstr(variables,'"'))/2;
-    id = findstr(chdata,[char(13),char(13)]); % double char(13) is a newline
+    id = findstr(chdata,char(13)); %  char(13) is a newline
     id = id(1); % only first line
     firstline = chdata(1:id);
     tmp = sscanf(firstline,'%g');
