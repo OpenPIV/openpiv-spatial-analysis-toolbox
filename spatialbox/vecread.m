@@ -111,7 +111,7 @@ chdata=chdat(char1:count);
 try
     variables = hdr(findstr(hdr,'variables=')+length('variables='):findstr(hdr,'chc')+4); % '"chc"
     % columns = length(findstr(variables,'"'))/2;
-    id = findstr(chdata,char(13)); %  char(13) is a newline
+    id = findstr(chdata(2:1000),char(13)); %  char(13) is a newline
     id = id(1); % only first line
     firstline = chdata(1:id);
     tmp = sscanf(firstline,'%g');
