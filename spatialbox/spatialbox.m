@@ -1,7 +1,7 @@
 % SPATIALBOX - main GUI file, created by GUIDE
 %
 
-% Copyright (c) 1998-2014 OpenPIV group
+% Copyright (c) 1998-2016 OpenPIV group
 % See the file license.txt for copying permission.
 
 function varargout = spatialbox(varargin)
@@ -26,6 +26,9 @@ if nargin == 0   % LAUNCH GUI
     handles.fluct_mean_list = '-|u rms|v rms|Reynolds stress|Turb. intensity (u) |Turb. intensity (v)|Dissipation|Turb. Energy Production|TKE|Enstropy';
     
     handles.fig = fig;
+    if ~isfield(handles,'axes_main')
+      handles.axes_main = get(handles.fig,'CurrentAxes');
+    end
     handles.previous_quantity = '-';
     orighandles = handles;          % backup for the later re-opening of the data
     guidata(handles.fig, handles);
@@ -513,6 +516,7 @@ update_gui(handles.fig,[],handles);
 function update_gui(~, ~, handles, varargin)
 % update_gui is responsible for update of the screen with current property and contour type
 
+handles.axes_main = get(handles.fig,'currentaxes');
 axes(handles.axes_main); %#ok<MAXES>
 delete(get(handles.axes_main,'children'));
 
@@ -671,7 +675,11 @@ xlabel(['x ',handles.xUnits]); % [m]');
 ylabel(['y ',handles.xUnits]); % 'y [m]');
 
 if isfield(handles,'colorbar') && get(handles.checkbox_colorbar,'Value') == 1
-    axpos = handles.axpos; % 10.04.06
+    
+    if ~isfield(handles,'axpos')
+        handles.axpos = get(handles.axes_main,'position');
+    end
+        axpos = handles.axpos;
     set(handles.axes_main,'Units','normalized','Position',...
         [axpos(1),axpos(2),axpos(3)-.025,axpos(4)]);
     if ishandle(handles.colorbar)
@@ -2317,6 +2325,7 @@ set(handles.pushbutton_select,'Enable','on');
 set(handles.fig,'pointer','arrow');
 
 % added on 10.04.06 for R12SP3 version
+
 handles.axpos = get(handles.axes_main,'Position');
 
 % Update all handles structure
