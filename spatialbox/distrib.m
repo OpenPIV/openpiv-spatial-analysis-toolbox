@@ -95,8 +95,8 @@ if nargin == 1  % LAUNCH GUI
     
     handles.hold = 0;
     
-    handles.displayname = ''; %cellstr(num2str(handles.data.y(handles.topY:handles.bottomY,1)));
-    
+    % handles.displayname = ''; %cellstr(num2str(handles.data.y(handles.topY:handles.bottomY,1)));
+    handles.ydir = 'normal';
     
 %     if length(unique(handles.data.j)) <= length(unique(handles.data.i))
 %         set(handles.UpdateGraph,'Value',2); % by cols
@@ -213,6 +213,7 @@ else
     legend('hide');
 end
 % plotedit on;
+set(gca,'ydir',handles.ydir);
 
 
 
@@ -395,5 +396,22 @@ else
     handles.legend = 0;
     
 end
+guidata(gcbo,handles);
+UpdateGraph_Callback(gcbo,[],guidata(gcbo));
+
+
+
+
+% --- Executes on button press in checkbox_legend.
+function reverse_y_Callback(h, eventdata, handles, varargin)
+if (get(h,'Value')  ==  get(h,'Max'))
+    handles.ydir = 'reverse';
+    
+else
+    % checkbox is not checked-take approriate action
+    handles.ydir = 'normal';
+    
+end
+
 guidata(gcbo,handles);
 UpdateGraph_Callback(gcbo,[],guidata(gcbo));
