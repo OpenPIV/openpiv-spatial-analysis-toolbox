@@ -2116,8 +2116,8 @@ try
             handles.v = tmp.v;
             handles.uf = tmp.uf;
             handles.vf = tmp.vf;
-            handles.files = tmp.files;
-            handles.path = tmp.path;
+             %handles.files = tmp.files;
+            % handles.path = tmp.path;
             handles.dx = tmp.dx;
             handles.dy = tmp.dy;
             handles.dudx = tmp.dudx;
