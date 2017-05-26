@@ -1519,6 +1519,9 @@ limY = ylim;
 % leftcolX   = 1;
 % bottomrowY = 1;
 
+handles.by_row = false;
+handles.by_column = false;
+handles.by_points = true;
 
 while 1
     
@@ -1910,6 +1913,7 @@ bottomrowY = 1;
 
 handles.by_column = true;
 handles.by_row = false;
+handles.by_points = false;
 
 while 1
     
@@ -1973,6 +1977,7 @@ leftcolX   = 1;
 
 handles.by_column = false;
 handles.by_row = true;
+handles.by_points = false;
 
 rightcolX = fix( abs(diff(limX)) / handles.gridX )+1;
 

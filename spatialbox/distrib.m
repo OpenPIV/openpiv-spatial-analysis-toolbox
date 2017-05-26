@@ -51,39 +51,16 @@ if nargin == 1  % LAUNCH GUI
         index = all(handles.property == 0,1);
         handles.property(:,index) = NaN;
         set(handles.UpdateGraph,'Value',2); % by cols
+    else % either by region or ALL or by points
+        if length(unique(handles.data.j)) <= length(unique(handles.data.i))
+            set(handles.UpdateGraph,'Value',2); % by cols
+        else
+            set(handles.UpdateGraph,'Value',1); % by rows
+        end
     end
-        
     
-    %------------------------------- Delete empty rows ------------------
-%     index = 1;
-%     emptyrows               = [];
-%     emptycols               = [];
     
-%     for i = 1:size(handles.property,1)
-%         if all(handles.property(i,:) == 0)
-%             emptyrows(index) = i;  %#ok<AGROW>
-%             index = index + 1;
-%         end;
-%     end;
-%     if ~isempty(emptyrows) % there were empty rows, there should not be also empty columns
-%         handles.property(emptyrows,:) = NaN;
-%     else
-%         
-%         %--------------------Delete  Empty Columns ----------
-%         index = 1;
-%         for i = 1:size(handles.property,2)
-%             if all(handles.property(:,i) == 0)
-%                 emptycols(index) = i;  %#ok<AGROW>
-%                 index = index+1;
-%             end
-%         end
-%         if ~isempty(emptycols)
-%             handles.property(:,emptycols) = NaN;
-%             %           set(handles.UpdateGraph,'Value',2);
-%             %            set(handles.UpdateGraph,'Enable','off');
-%         end
-%     end
-    % --------------------------------
+    
     
     handles.leftX = min(handles.data.j);
     handles.rightX = max(handles.data.j) ; %;(length(handles.data.j));
@@ -98,22 +75,18 @@ if nargin == 1  % LAUNCH GUI
     % handles.displayname = ''; %cellstr(num2str(handles.data.y(handles.topY:handles.bottomY,1)));
     handles.ydir = 'normal';
     
-%     if length(unique(handles.data.j)) <= length(unique(handles.data.i))
-%         set(handles.UpdateGraph,'Value',2); % by cols
-%     else
-%         set(handles.UpdateGraph,'Value',1); % by rows
-%     end
+    
     UpdateGraph_Callback(fig, [], handles);
     
     guidata(fig, handles);
-        
-%         plot(handles.data.x(1,handles.leftX:handles.rightX),handles.property,...
-%             'DisplayName',handles.displayname);
-%         %     legend show
-%         ylabel(['x',handles.data.xUnits]); % [m]');
-%         grid on;
-%         xlabel(strcat(handles.data.previous_quantity,'  ',handles.data.units));
-
+    
+    %         plot(handles.data.x(1,handles.leftX:handles.rightX),handles.property,...
+    %             'DisplayName',handles.displayname);
+    %         %     legend show
+    %         ylabel(['x',handles.data.xUnits]); % [m]');
+    %         grid on;
+    %         xlabel(strcat(handles.data.previous_quantity,'  ',handles.data.units));
+    
     
     %     plotedit on;
     if nargout > 0
@@ -188,12 +161,34 @@ if get(handles.SnglCheckbox,'Value') == 1
     hold on;
     switch val
         case 1 % by rows
-            for jj = 1:size(y,2)
-                plot(x,y(:,jj),'DisplayName',handles.displayname{jj});
+            if handles.data.by_points == true
+                try
+                    y = nonzeros(y);
+                    for jj = 1:length(y)
+                        plot(x,y(jj),'DisplayName',handles.displayname{jj});
+                    end
+                catch
+                    disp('Not implemented');
+                end
+            else
+                for jj = 1:size(y,2)
+                    plot(x,y(:,jj),'DisplayName',handles.displayname{jj});
+                end
             end
-        case 2 % by cols
-            for jj = 1:size(x,2)
-                plot(x(:,jj),y,'DisplayName',handles.displayname{jj});
+        case 2 % by cols or by points
+            if handles.data.by_points == true
+                try
+                    x = nonzeros(x);
+                    for jj = 1:length(x)
+                        plot(x(jj),y,'DisplayName',handles.displayname{jj});
+                    end
+                catch
+                    disp('Not implemented');
+                end
+            else
+                for jj = 1:size(x,2)
+                    plot(x(:,jj),y,'DisplayName',handles.displayname{jj});
+                end
             end
     end
     xlabel(x_label);
