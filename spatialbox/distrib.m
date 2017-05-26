@@ -144,11 +144,13 @@ switch val
     case 1
         x = handles.data.x(1,handles.leftX:handles.rightX);
         x_label = (['x ',handles.data.xUnits]); % 'x [m]';
-        y = handles.property';
+        % y = handles.property';
+        y = handles.property(~isnan(handles.property(:,1)),:)';
         % y = y(~isnan(y(:,1)),:);
         y_label = strcat(handles.data.previous_quantity,'  ',handles.data.units);
         xa = x;
-        ya = no_nan_mean(handles.property);
+        % ya = no_nan_mean(handles.property);
+        ya = mean(y,2);
         % handles.displayname = cellstr(num2str(handles.data.y(handles.topY:handles.bottomY,1)));
         handles.displayname = cellstr( num2str( handles.data.y(unique(handles.data.i),1) ) );
     case 2
