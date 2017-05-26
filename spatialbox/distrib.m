@@ -39,34 +39,50 @@ if nargin == 1  % LAUNCH GUI
         handles.property(handles.data.i(i) - MatrixLeftMove, handles.data.j(i) - MatrixUpMove) = ...
             handles.data.property(handles.data.i(i),handles.data.j(i));
     end
-    %------------------------------- Delete empty rows ------------------
-    index = 1;
-    emptyrows               = [];
-    emptycols               = [];
-    for i = 1:size(handles.property,1)
-        if handles.property(i,:) == 0
-            emptyrows(index) = i;  %#ok<AGROW>
-            index = index + 1;
-        end;
-    end;
-    if ~isempty(emptyrows)
-        handles.property(emptyrows,:) = NaN;
-    else
-        
-        %--------------------Delete  Empty Columns ----------
-        index = 1;
-        for i = 1:size(handles.property,2)
-            if handles.property(:,i) == 0
-                emptycols(index) = i;  %#ok<AGROW>
-                index = index+1;
-            end
-        end
-        if ~isempty(emptycols)
-            handles.property(:,emptycols) = NaN;
-            %           set(handles.UpdateGraph,'Value',2);
-            %            set(handles.UpdateGraph,'Enable','off');
-        end
+    
+    
+    if handles.data.by_row == true && handles.data.by_column == false
+        % should be empty rows
+        index = all(handles.property == 0,2);
+        handles.property(index,:) = NaN;
+        set(handles.UpdateGraph,'Value',1); % by rows
+    elseif handles.data.by_row == false && handles.data.by_column == true
+        %should be empty columns, replace by NaN
+        index = all(handles.property == 0,1);
+        handles.property(:,index) = NaN;
+        set(handles.UpdateGraph,'Value',2); % by cols
     end
+        
+    
+    %------------------------------- Delete empty rows ------------------
+%     index = 1;
+%     emptyrows               = [];
+%     emptycols               = [];
+    
+%     for i = 1:size(handles.property,1)
+%         if all(handles.property(i,:) == 0)
+%             emptyrows(index) = i;  %#ok<AGROW>
+%             index = index + 1;
+%         end;
+%     end;
+%     if ~isempty(emptyrows) % there were empty rows, there should not be also empty columns
+%         handles.property(emptyrows,:) = NaN;
+%     else
+%         
+%         %--------------------Delete  Empty Columns ----------
+%         index = 1;
+%         for i = 1:size(handles.property,2)
+%             if all(handles.property(:,i) == 0)
+%                 emptycols(index) = i;  %#ok<AGROW>
+%                 index = index+1;
+%             end
+%         end
+%         if ~isempty(emptycols)
+%             handles.property(:,emptycols) = NaN;
+%             %           set(handles.UpdateGraph,'Value',2);
+%             %            set(handles.UpdateGraph,'Enable','off');
+%         end
+%     end
     % --------------------------------
     
     handles.leftX = min(handles.data.j);
@@ -78,14 +94,15 @@ if nargin == 1  % LAUNCH GUI
     handles.legend = 0; % default - no legend;
     
     handles.hold = 0;
-    handles.displayname = cellstr(num2str(handles.data.y(handles.topY:handles.bottomY,1)));
+    
+    handles.displayname = ''; %cellstr(num2str(handles.data.y(handles.topY:handles.bottomY,1)));
     
     
-    if length(unique(handles.data.j)) <= length(unique(handles.data.i))
-        set(handles.UpdateGraph,'Value',2); % by cols
-    else
-        set(handles.UpdateGraph,'Value',1); % by rows
-    end
+%     if length(unique(handles.data.j)) <= length(unique(handles.data.i))
+%         set(handles.UpdateGraph,'Value',2); % by cols
+%     else
+%         set(handles.UpdateGraph,'Value',1); % by rows
+%     end
     UpdateGraph_Callback(fig, [], handles);
     
     guidata(fig, handles);
@@ -132,16 +149,21 @@ switch val
         y_label = strcat(handles.data.previous_quantity,'  ',handles.data.units);
         xa = x;
         ya = no_nan_mean(handles.property);
-        handles.displayname = cellstr(num2str(handles.data.y(handles.topY:handles.bottomY,1)));
+        % handles.displayname = cellstr(num2str(handles.data.y(handles.topY:handles.bottomY,1)));
+        handles.displayname = cellstr( num2str( handles.data.y(unique(handles.data.i),1) ) );
     case 2
         y = handles.data.y(handles.topY:handles.bottomY,1);
         y_label = (['y ',handles.data.xUnits]); % 'y [m]';
-        x = handles.property;
+        % x = handles.property;
+        x = handles.property(:,~isnan(handles.property(1,:)));
         % x = x(:,~isnan(x(1,:)));
         x_label = strcat(handles.data.previous_quantity,'  ',handles.data.units);
-        xa = no_nan_mean(handles.property')';
+        % xa = no_nan_mean(handles.property')';
+        xa = mean(x,2);
         ya = y;
-        handles.displayname = cellstr(num2str(handles.data.x(1,handles.leftX:handles.rightX)'));
+        % handles.displayname = cellstr(num2str(handles.data.x(1,handles.leftX:handles.rightX)'));
+        
+        handles.displayname = cellstr(num2str(handles.data.x(1,unique(handles.data.j))'));
 end
 
 if handles.swap
@@ -161,11 +183,20 @@ end
 cla reset;
 % ---------------------- Single is checked------------------
 if get(handles.SnglCheckbox,'Value') == 1
-    for jj = 1:size(y,2)
-        plot(x,y(:,jj),'DisplayName',char(handles.displayname{jj}));
+    hold on;
+    switch val
+        case 1 % by rows
+            for jj = 1:size(y,2)
+                plot(x,y(:,jj),'DisplayName',handles.displayname{jj});
+            end
+        case 2 % by cols
+            for jj = 1:size(x,2)
+                plot(x(:,jj),y,'DisplayName',handles.displayname{jj});
+            end
     end
     xlabel(x_label);
     ylabel(y_label);
+    hold off;
 end
 % --------------------- Avge is checked -------------------------
 if get(handles.AvgCheckbox,'Value') == get(handles.AvgCheckbox,'Max')
