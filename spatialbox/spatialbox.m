@@ -1575,6 +1575,11 @@ set(handles.colpushbutton,'Enable','off');
 set(handles.rowpushbutton,'Enable','off');
 set(handles.pushbutton_selectall,'Enable','off');
 
+
+handles.by_row = false;
+handles.by_column = false;
+handles.by_points = false;
+
 waitforbuttonpress;
 point1  =   get(gca,'CurrentPoint');    % button down detected
 % point1 is 2x3 matrix, first 2 elements are x,y
@@ -1686,6 +1691,14 @@ set(handles.colpushbutton,'Enable','off');
 set(handles.rowpushbutton,'Enable','off');
 set(handles.pushbutton_selectreg,'Enable','off');
 set(handles.pushbutton_selectall,'Enable','off');
+
+
+handles.by_row = false;
+handles.by_column = false;
+handles.by_points = false;
+
+
+
 handles.Allselected=1;
 update_gui(hObject,[],guidata(hObject));
 handles.i=[]; handles.j=[]; handles.previousSel=[];
