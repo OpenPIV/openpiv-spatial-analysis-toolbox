@@ -1,7 +1,7 @@
 % SPATIALBOX - main GUI file, created by GUIDE
 %
 
-% Copyright (c) 1998-2016 OpenPIV group
+% Copyright (c) 1998-2017 OpenPIV group
 % See the file license.txt for copying permission.
 
 function varargout = spatialbox(varargin)
@@ -1139,7 +1139,7 @@ try
     handles.scale = 1;
     [gui_path,~,~] = fileparts(gui_files{1});
     
-    save('lastpath.mat','gui_path');
+    save(fullfile(fileparts(mfilename('fullpath')),'lastpath.mat'),'gui_path');
     
     
     handles.N = length(gui_files); % number of files selected
@@ -2090,10 +2090,9 @@ handles.restoreorig = 1;
 handles.dt = 1;
 handles.state3d = 0;
 
-gui_path = cd;
-if exist('lastpath.mat','file')
-    load('lastpath.mat');
-    if ~exist(gui_path,'dir'), gui_path = cd; end;
+if exist(fullfile(fileparts(mfilename('fullpath')),'lastpath.mat'),'file')
+    load(fullfile(fileparts(mfilename('fullpath')),'lastpath.mat'));
+    if ~exist(gui_path,'dir'), gui_path = cd; end; % loading lastpath overwrites
 else
     gui_path = cd;
 end
@@ -2107,8 +2106,9 @@ try
     w = who('-file',coordMatfile{1});
     
     
-    [gui_path,~,~] = fileparts(coordMatfile{1}); %#ok<ASGLU>
-     save('lastpath.mat','gui_path');
+     [gui_path,~,~] = fileparts(coordMatfile{1}); %#ok<ASGLU>
+     
+     save(fullfile(mfilename('fullpath'),'lastpath.mat'),'gui_path');
     
     exportedMat = false;
     if sum(cellfun(@sum,strfind(w,'xUnits'))) > 0, exportedMat = true; end
@@ -2376,9 +2376,8 @@ handles.state3d = 0;
 handles.dt  = 1;
 
 
-gui_path = cd;
-if exist('lastpath.mat','file')
-    load('lastpath.mat');
+if exist(fullfile(mfilename('fullpath'),'lastpath.mat'),'file')
+    load(fullfile(mfilename('fullpath'),'lastpath.mat'));
     if ~exist(gui_path,'dir'), gui_path = cd; end;
 else
     gui_path = cd;

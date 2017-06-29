@@ -156,7 +156,7 @@ end
 
 
 
-cla(get(handles.fig,'CurrentAxes'),'RESET');
+cla(get(handles.fig,'CurrentAxes'));
 % ---------------------- Single is checked------------------
 if get(handles.SnglCheckbox,'Value') == 1
     hold on;
