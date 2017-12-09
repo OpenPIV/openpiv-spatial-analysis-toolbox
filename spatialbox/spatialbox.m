@@ -2108,7 +2108,7 @@ try
     
      [gui_path,~,~] = fileparts(coordMatfile{1}); %#ok<ASGLU>
      
-     save(fullfile(mfilename('fullpath'),'lastpath.mat'),'gui_path');
+     save(fullfile(fileparts(mfilename('fullpath')),'lastpath.mat'),'gui_path');
     
     exportedMat = false;
     if sum(cellfun(@sum,strfind(w,'xUnits'))) > 0, exportedMat = true; end
