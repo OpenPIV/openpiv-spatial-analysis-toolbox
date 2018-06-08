@@ -21,6 +21,7 @@ if nargin == 1  % LAUNCH GUI
     % ------   Initialization --------------
     % Generate a structure of handles to pass to callbacks, and store it.
     handles                 = guihandles(fig);
+    handles.fig = fig;
     % in GUIDE the figure Tag is defined as 'fig', so
     % handles.fig is enough.
     %     handles.distribHandle   = fig;
@@ -155,7 +156,7 @@ end
 
 
 
-cla reset;
+cla(get(handles.fig,'CurrentAxes'));
 % ---------------------- Single is checked------------------
 if get(handles.SnglCheckbox,'Value') == 1
     hold on;
