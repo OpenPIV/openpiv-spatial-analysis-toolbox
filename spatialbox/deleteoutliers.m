@@ -99,5 +99,9 @@ return
 function zcrit = zcritical(alpha,n)
 %ZCRIT = ZCRITICAL(ALPHA,N)
 % Computes the critical z value for rejecting outliers (GRUBBS TEST)
-tcrit = tinv(alpha/(2*n),n-2);
+tdist2T = @(t,v) (1-betainc(v/(v+t^2),v/2,0.5));                                % 2-tailed t-distribution
+tdist1T = @(t,v) 1-(1-tdist2T(t,v))/2;                                          % 1-tailed t-distribution
+t_inv = @(alpha,v) fzero(@(tval) (max(alpha,(1-alpha)) - tdist1T(tval,v)), 5);  % T-Statistic Given Probability ‘alpha’ & Degrees-Of-Freedom ‘v’
+
+tcrit = t_inv(alpha/(2*n),n-2);
 zcrit = (n-1)/sqrt(n)*(sqrt(tcrit^2/(n-2+tcrit^2)));
