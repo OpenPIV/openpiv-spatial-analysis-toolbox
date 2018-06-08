@@ -1185,7 +1185,7 @@ try
                 clear d
             end
         case 0
-            if ~isempty(findstr(lower(handles.files{1}),'vec'))            % process .vec files
+            if contains(lower(handles.files{1}),'vec')            % process .vec files
                 % read the first file, determine the size
                 % [handles.xUnits,handles.velUnits,d] = vecread(fullfile(handles.path,handles.files{1}));
                 [handles.xUnits,handles.velUnits,d] = vecread(handles.files{1});
