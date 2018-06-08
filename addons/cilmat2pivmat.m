@@ -2,21 +2,21 @@ function [varargout] = cilmat2pivmat(varargin)
 % CILMAT2PIVMAT converts the CIL Spatialbox MAT files into PIVMAT
 % compatible MAT files
 % main differences: CILMAT has velocity in 3D matrices, and PIVMAT in
-% large structure, e.g.: 
+% large structure, e.g.:
 % u = struct 1 x 1, in which matrix dudx is R x C x N (fields)
 % v = struct 1 x N (fields)
 % R = size in rows
 % C = size in cols
 % main translation is the loop:
 % for i = 1:size(u.uf,3) % for all fields
-%   newstruct(i).uf = u.uf(:,:,i); 
+%   newstruct(i).uf = u.uf(:,:,i);
 % end
-% 
-% Example: 
-% 
+%
+% Example:
+%
 % u = load('8hz_cropped.mat');
 % v = cilmat2pivmat(u)
-% showf (v) 
+% showf (v)
 
 % Author: Alex Liberzon (alex dot liberzon at gmail dot com)
 % Copyright (c) 1998-2012 OpenPIV group
@@ -32,17 +32,21 @@ v = struct('x',[],'y',[],'vx',[],'vy',[],'unitx',[],'unity',[],...
 v = repmat(v,[size(u.uf,3),1]);
 for i = 1:size(u.uf,3)
     v(i).x = u.x(1,:);
-    v(i).y = u.y(:,1)'; 
+    v(i).y = u.y(:,1)';
     v(i).vx = u.u(:,:,i).';
     v(i).vy = u.v(:,:,i).';
-%     v(i).choice = [];
+    %     v(i).choice = [];
     v(i).unitx = u.xUnits;
-    v(i).unity = u.xUnits; 
+    v(i).unity = u.xUnits;
     v(i).unitvx = u.velUnits;
     v(i).unitvy = u.velUnits;
-    v(i).source = 'Insight,CIL';
-    v(i).name = u.path;
+    v(i).source = 'spatialbox';
+    try
+        v(i).name = u.path;
+    catch
+        v(i).name = cd;
+    end
 end
-    
+
 varargout{1} = v;
 

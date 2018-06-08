@@ -138,7 +138,15 @@ j = findstr(hdr,'j=');
 
 i = eval(i); j = eval(j);
 
-data = reshape(data,[j,i,columns]); % modified
+% decide about order and reshape accordingly
+tmp  = data(1:2,1:2);
+if any(diff(tmp,1,2)==0)
+    data = reshape(data,[j,i,columns]); % modified
+elseif any(diff(tmp,1,1)==0)
+    data = reshape(data,[i,j,columns]); % modified
+else
+    error('VEC file is not ordered by x or y');
+end
 data = permute(data,[2 1 3]);
 
 if nargout == 1
