@@ -1099,7 +1099,7 @@ else
     else
         set (handles.popupmenu_quantity,'String',handles.inst_list);
     end
-end;
+end
 set(handles.popupmenu_quantity,'Value',1);     % 2104 by Denis
 handles.property    =   [];
 handles.C           =   [];
