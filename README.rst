@@ -1,5 +1,5 @@
-repository for OpenPIV Spatial Analysis Toolbox
-+++++++++++++++++++++++++++++++++++++++++++++++
+OpenPIV Spatial and Temporal Analysis GUI Toolbox
++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
 What is it?
