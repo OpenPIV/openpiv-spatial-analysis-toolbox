@@ -1,11 +1,6 @@
 repository for OpenPIV Spatial Analysis Toolbox
 +++++++++++++++++++++++++++++++++++++++++++++++
 
-Warning!!!
-----------
-
-This specific R2014b branch is different and not yet fully tested
-
 
 What is it?
 ------------
