@@ -1099,7 +1099,7 @@ else
     else
         set (handles.popupmenu_quantity,'String',handles.inst_list);
     end
-end;
+end
 set(handles.popupmenu_quantity,'Value',1);     % 2104 by Denis
 handles.property    =   [];
 handles.C           =   [];
@@ -1185,7 +1185,7 @@ try
                 clear d
             end
         case 0
-            if ~isempty(findstr(lower(handles.files{1}),'vec'))            % process .vec files
+            if contains(lower(handles.files{1}),'vec')            % process .vec files
                 % read the first file, determine the size
                 % [handles.xUnits,handles.velUnits,d] = vecread(fullfile(handles.path,handles.files{1}));
                 [handles.xUnits,handles.velUnits,d] = vecread(handles.files{1});
