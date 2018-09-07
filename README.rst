@@ -1,6 +1,6 @@
 OpenPIV Spatial and Temporal Analysis GUI Toolbox
 +++++++++++++++++++++++++++++++++++++++++++++++++
-
+![snapshot](snapshot.jpg)
 
 What is it?
 ------------
