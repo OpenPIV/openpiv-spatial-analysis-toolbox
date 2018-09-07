@@ -45,7 +45,7 @@ function [varargout] = vecread(varargin)
 
 
 % Inputs:
-msg = nargchk(1,3,nargin); if ~isempty(msg), error(msg), end;
+narginchk(1,3);
 % Defaults:
 if nargin < 3
     varargin{3} = 5;		% default columns value
@@ -57,10 +57,10 @@ end
 % Assign variables
 name = varargin{1};
 comments = varargin{2};
-columns = varargin{3};
+% columns = varargin{3};
 
 % Extension issue
-if isempty(findstr(name,'.vec')), name = strcat(name,'.vec'); end;
+if ~contains(name,'.vec'), name = strcat(name,'.vec'); end
 
 % Read the file
 fid=fopen(name,'r');
@@ -74,7 +74,7 @@ fclose(fid);
 % Reformat the data
 chdat=[dch(:)',char(13)];
 
-ind10 = find(chdat == char(10));
+ind10 = find(chdat == newline);
 chdat(ind10) = repmat(char(13),[length(ind10),1]);
 % chdat(ind10) = repmat(char(' '),[length(ind10),1]);
 
@@ -95,7 +95,7 @@ chdat(indcom) = repmat(char(' '),[length(indcom),1]);
 ind13 = find(chdat == char(13));
 
 % Truncate array to just have data
-if comments==0,
+if comments==0
     char1=1;
 else
     char1=ind13(comments)+1;
@@ -109,14 +109,14 @@ chdata=chdat(char1:count);
 % disappeared, new columns appeared, e.g. datasetauxdata ...
 % variables = hdr(findstr(hdr,'variables=')+length('variables='):findstr(hdr,'zone')-1);
 try
-    variables = hdr(findstr(hdr,'variables=')+length('variables='):findstr(hdr,'chc')+4); % '"chc"
+    variables = hdr(strfind(hdr,'variables=')+length('variables='):strfind(hdr,'chc')+4); % '"chc"
     % columns = length(findstr(variables,'"'))/2;
-    id = findstr(chdata(2:1000),char(13)); %  char(13) is a newline
+    id = strfind(chdata(2:1000),char(13)); %  char(13) is a newline
     id = id(1); % only first line
     firstline = chdata(1:id);
     tmp = sscanf(firstline,'%g');
     columns = length(tmp);
-    ind = findstr(variables,'"');
+    ind = strfind(variables,'"');
     xUnits = variables(ind(1)+2:ind(2)-1);
     uUnits = variables(ind(5)+2:ind(6)-1);
 catch
@@ -131,22 +131,20 @@ data(data>9e9) = 0;
 
 % Parse the header
 
-i = findstr(hdr,'i=');
-j = findstr(hdr,'j=');
+i = strfind(hdr,'i=');
+j = strfind(hdr,'j=');
 [i,~] = strtok(hdr(i+2:end));
 [j,~] = strtok(hdr(j+2:end));
 
 i = eval(i); j = eval(j);
 
-% decide about order and reshape accordingly
-tmp  = data(1:2,1:2);
-if any(diff(tmp,1,2)==0)
-    data = reshape(data,[j,i,columns]); % modified
-elseif any(diff(tmp,1,1)==0)
-    data = reshape(data,[i,j,columns]); % modified
-else
-    error('VEC file is not ordered by x or y');
+% if it fails or we can compare for consistency
+
+if i ~= length(unique(data(:,1))) || j ~= length(unique(data(:,2)))
+    error('VEC file is not ordered properly or I,J are wrong in the header');
 end
+
+data = reshape(data,[i,j,columns]);
 data = permute(data,[2 1 3]);
 
 if nargout == 1
