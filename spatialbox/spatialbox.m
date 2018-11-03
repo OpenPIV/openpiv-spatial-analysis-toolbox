@@ -815,7 +815,7 @@ if get(handles.pushbutton_save_movie,'Value') == 1
         set(handles.pushbutton_save_movie,'Value',0);
         return
     end
-    handles.mov = avifile(file{1},'compression','none','quality',100,'fps',15);
+    handles.mov = VideoWriter(file{1},'compression','none','quality',100,'fps',15);
     % It is possible to change the compression and the video codec, and the
     % frame rate
     % mov = avifile(file{1},'compression','Indeo5','quality',100,'fps',5);
