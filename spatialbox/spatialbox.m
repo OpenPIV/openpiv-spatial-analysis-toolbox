@@ -196,7 +196,7 @@ if get(handles.checkbox_ensemble,'Value') == 1
                         dudy = handles.dudy(:,:,i) - handles.dudy(:,:,handles.N+1);
                         dvdx = handles.dvdx(:,:,i) - handles.dvdx(:,:,handles.N+1);
                         dvdy = handles.dvdy(:,:,i) - handles.dvdy(:,:,handles.N+1);
-                        handles.diss = handles.diss + (dudx).^2 + (dvdy).^2 + 2*(dudy + dvdx).^2;
+                        handles.diss = handles.diss + 2*(dudx).^2 + 2*(dvdy).^2 + (dudy + dvdx).^2;
                     end
                     handles.diss = handles.diss/handles.N;
                     handles.property = handles.diss;
