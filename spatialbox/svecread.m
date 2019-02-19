@@ -45,7 +45,7 @@ function [varargout] = svecread(varargin)
 
 
 % Inputs:
-msg = nargchk(1,3,nargin); if ~isempty(msg), error(msg), end;
+narginchk(1,3);
 % Defaults:
 if nargin < 3
    varargin{3} = 8;		% default columns value   (13/08/01)
@@ -80,18 +80,18 @@ if strcmp(comp(1:3),'PCW')|strcmp(comp(1:3),'VAX')|strcmp(comp(1:3),'ALP'),
    chdat(ind10)=setstr(' '*ones(1,length(ind10)));
 else
    %replace line-feeds with carriage-returns for Unix boxes
-   chdat(ind10)=setstr(13*ones(length(ind10),1));
+   chdat(ind10)=char(13*ones(length(ind10),1));
 end
 
 % Now replace commas with spaces
 indcom=find(chdat==',');
-chdat(indcom)=setstr(' '*ones(1,length(indcom)));
+chdat(indcom)=char(' '*ones(1,length(indcom)));
 
 %find carriage-returns
-ind13=find(chdat==setstr(13));
+ind13=find(chdat==char(13));
 
 % Truncate array to just have data
-if comments==0,
+if comments==0
    char1=1;
 else
    char1=ind13(comments)+1;
@@ -108,13 +108,13 @@ if ~isempty(badind), data(badind) = 0; warning(sprintf('Bad %d points',length(ba
 
 % Parse the header
 
-i = findstr(hdr,'i=');
-j = findstr(hdr,'j=');
-k = findstr(hdr,'k=');  % 3rd dimension index, 19/08, Alex.
+i = strfind(hdr,'i=');
+j = strfind(hdr,'j=');
+k = strfind(hdr,'k=');  % 3rd dimension index, 19/08, Alex.
 
-[i,junk] = strtok(hdr(i+2:end));
-[j,junk] = strtok(hdr(j+2:end));
-[k,junk] = strtok(hdr(k+2:end)); % 19/08/01
+[i,~] = strtok(hdr(i+2:end));
+[j,~] = strtok(hdr(j+2:end));
+[k,~] = strtok(hdr(k+2:end)); % 19/08/01
 
 i = eval(i); j = eval(j); k= eval(k);  % 19/08/01
 
@@ -129,9 +129,9 @@ elseif nargout == 2
 elseif nargout == 4
    varargout{1} = hdr;
    varargout{2} = data;
-   varargout{3} = str2num(i);
-   varargout{4} = str2num(j);
-   varargout{5} = str2num(k);
+   varargout{3} = i;
+   varargout{4} = j;
+   varargout{5} = k;
 else
    warning('Wrong number of outputs') ;
 end
