@@ -1295,6 +1295,7 @@ set(handles.pushbutton_select,'Enable','on');
 set(handles.fig,'pointer','arrow');
 
 % added on 10.04.06 for R12SP3 version
+handles.axes_main = get(handles.fig,'CurrentAxes');
 handles.axpos = get(handles.axes_main,'Position');
 
 % Update all handles structure

@@ -57,10 +57,10 @@ end
 % Assign variables
 name = varargin{1};
 comments = varargin{2};
-columns = varargin{3};
+% columns = varargin{3};
 
 % Extension issue
-if isempty(findstr(lower(name),'.v3d')), name = strcat(name,'.v3D'); end;
+if ~contains(lower(name),'.v3d'), name = strcat(name,'.v3d'); end
 
 % Read the file
 fid=fopen(name,'r');
@@ -71,13 +71,13 @@ end
 fclose(fid);
 
 % Reformat the data
-chdat=[dch(:)',setstr(13)];
+chdat=[dch(:)',char(13)];
 
-ind10=find(chdat==setstr(10));
+ind10=find(chdat==newline);
 comp=computer;
-if strcmp(comp(1:3),'PCW')|strcmp(comp(1:3),'VAX')|strcmp(comp(1:3),'ALP'),
+if strcmp(comp(1:3),'PCW')||strcmp(comp(1:3),'VAX')||strcmp(comp(1:3),'ALP')
    % replace cr-lf with cr only for PC's, VAXen and Alphas
-   chdat(ind10)=setstr(' '*ones(1,length(ind10)));
+   chdat(ind10)=char(' '*ones(1,length(ind10)));
 else
    %replace line-feeds with carriage-returns for Unix boxes
    chdat(ind10)=char(13*ones(length(ind10),1));
@@ -99,12 +99,35 @@ end
 hdr = lower(chdat(1:char1-1));
 chdata=chdat(char1:count);
 
+
+% Update of the vecread towards Insight 7 with plugins and new variables
+% multiple-columns, June 03, 2004.
+% Alex, 22.02.08 - some change in VEC files - the space after variables=
+% disappeared, new columns appeared, e.g. datasetauxdata ...
+% variables = hdr(findstr(hdr,'variables=')+length('variables='):findstr(hdr,'zone')-1);
+try
+    variables = hdr(strfind(hdr,'variables=')+length('variables='):strfind(hdr,'chc')+4); % '"chc"
+    % columns = length(findstr(variables,'"'))/2;
+    id = strfind(chdata(2:1000),char(13)); %  char(13) is a newline
+    id = id(1); % only first line
+    firstline = chdata(1:id);
+    tmp = sscanf(firstline,'%g');
+    columns = length(tmp);
+    ind = strfind(variables,'"');
+    xUnits = variables(ind(1)+2:ind(2)-1);
+    uUnits = variables(ind(7)+2:ind(8)-1);
+catch
+    columns = 8;
+    xUnits = '';
+    uUnits = '';
+end
+
 % Convert it
 data=sscanf(chdata,'%g',[columns inf])';
 
 % Find and remove bad points > 9.99e9
 badind = find(data>9e9);
-if ~isempty(badind), data(badind) = 0; warning(sprintf('Bad %d points',length(badind))); end;
+if ~isempty(badind), data(badind) = 0; warning('Bad %d points',length(badind)); end
 
 % Parse the header
 
@@ -126,6 +149,10 @@ if nargout == 1
 elseif nargout == 2
    varargout{1} = hdr;
    varargout{2} = data;
+elseif nargout == 3
+    varargout{1} = xUnits;
+    varargout{2} = uUnits;
+    varargout{3} = data;
 elseif nargout == 4
    varargout{1} = hdr;
    varargout{2} = data;
