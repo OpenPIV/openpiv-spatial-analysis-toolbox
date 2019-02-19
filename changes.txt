@@ -1,0 +1,33 @@
+Changes log
+
+October 27, 2004
+1. The major update for the Matlab 7 SP1 (R14SP1).
+2. GUIDE uses new Graphics objects, called containers or panels.
+3. In SPATIALBOX, the switches between panes of SPATIAL and SELECT are with two main panels
+3. In TIMEBOX, 3 panels: time history, quantity and windowing
+4. In SPATIALBOX, the bug of the select all is fixed by upRowY and similar things. has to be revised in future versions.
+5. In SPATIALBOX and DISTRIBBOX, the units of the Reynolds stress, dissipation and others are fixed.
+
+
+June 3, 2004
+1. DISTRIB.M includes no_nan_mean() function, instead of Matlab's nanmean()
+2. VECREAD.M reads variable column VEC and V3D files, scanning header automatically for the number of variales.
+3. Rij is now done with crosscorr2d instead of crosscoef of Matlab. i think it was kind of problem with
+the shifting to center. now it looks a little bit 'nicer', but maybe not 'right'.
+
+June 16, 2004
+1. Email of Hai - the bug was with spatialbox.m the way we calculate handles.dx and handles.dy was wrong, 
+the du/dy was of opposite sign
+
+June 26, 2004
+"Bug" fixes due to last emails:
+1. added try...catch..end structure in load_callback to give error if something is wrong with files
+2. fixed svecread to read multiple columns. this function is not checked since we do not have new type of 
+   stereo V3D files
+3. in cil_uigetfiles.fig, the dt is implemented
+4. cil_uigetfiles now reads one, or two or more files with mouse, mouse + CTRL, and mouse + SHIFT. no time-series
+5. spatialbox does not scale the data with time anymore. the decision is to be made what to do with units
+6. vecread and svecread read two new variables handles.xUnits and handles.velUnits that will serve us in the 'units'.
+
+
+

@@ -1,1 +1,1 @@
-matlab -nodesktop -r spatialbox
+matlab -nosplash -nodesktop -minimize -r spatialbox 

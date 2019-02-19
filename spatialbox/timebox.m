@@ -16,7 +16,10 @@ function varargout = timebox(varargin)
 % Last modified: May 5, 2004, 01:31AM
 % - all units are in m/s, therefore 2pi should work
 % window length is introduced, as well as detrend and overlaping
-%
+% Last modified: June 21, 2004
+% handles.data.dx and handles.data.dy are replaced with abs()
+% due to the bug in SpatialBox
+% 
 
 if strcmp(inputname(1),'handles') 
     % GUI
@@ -31,31 +34,7 @@ if strcmp(inputname(1),'handles')
     
     set(fig,'Color',get(0,'defaultUicontrolBackgroundColor'));
     
-    % ---------------------------------------------------------------------
-    if isempty(findall(fig,'type','uitoolbar'))
-        
-        % Add a new toolbar
-        hToolbar = uitoolbar('Parent',fig);
-        
-        load tsi_icons;
-        
-        uipushtool('parent',hToolbar,'Click','process1(''load_Callback'',gcbo, [], guidata(gcbo))',...
-            'cdata',openfile,'Tag','openfilebtn');
-        uipushtool('parent',hToolbar,'Click','savefile_Callback',...
-            'cdata',savefile,'Tag','savefilebtn');
-        uitoggletool('parent',hToolbar,'ClickedCallback','putdowntext(''zoomin'',gcbf)',...
-            'cdata',zoomin,'Tag','zoominbtn','state','off','ToolTipString','Zoom In');
-        uitoggletool('parent',hToolbar,'Click','putdowntext(''zoomout'',gcbf)',...
-            'cdata',zoomout,'Tag','zoomoutbtn','state','off', 'ToolTipString','Zoom Out');
-        uipushtool('parent',hToolbar,'Click','zoom(gcbf,''reset'')',...
-            'cdata',zoomall,'Tag','zoomallbtn', 'ToolTipString','View All');
-        uitoggletool('parent',hToolbar,'Click','zoom(gcbf,''xon'')',...
-            'cdata',zoomx,'Tag','zoomxbtn','state','off', 'ToolTipString','Zoom X');
-        uitoggletool('parent',hToolbar,'Click','zoom(gcbf,''yon'')',...
-            'cdata',zoomy,'Tag','zoomybtn','state','off', 'ToolTipString','Zoom Y');
-        %         uitoggletool('parent',hToolbar,'Click','grid',...
-        %             'Tag','gridbtn','state','on', 'ToolTipString','Grid On/Off');
-    end
+    
     
     
     % ---------------------------------------------------------------------
@@ -75,6 +54,12 @@ if strcmp(inputname(1),'handles')
     handles.indm(handles.ind) = true;                               % 2D matrix, could visualize the selection
     handles.rows  = max(handles.data.i) - min(handles.data.i) + 1;
     handles.cols  = max(handles.data.j) - min(handles.data.j) + 1;
+    
+    % Prevent two point correlation if rows or cols are selected
+    if length(handles.ind) ~= handles.rows*handles.cols
+        %    set(handles.popupmenu_quantity,'string','---|Rii (t)|Rii (r 1)|Rii (r 2)|Rij (r 1, r 2)|E (f)|E (k 1)|E (k 2)');
+        set(handles.popupmenu_quantity,'string','---|Rii (t)|Rii (r 1)|Rii (r 2)|---|E (f)|E (k 1)|E (k 2)');
+    end
     
     % Calculate u and v average velocities over spatial regions
     handles.umean = squeeze( handles.data.u(handles.data.i(1),handles.data.j(1),1:end-1) );
@@ -97,7 +82,7 @@ if strcmp(inputname(1),'handles')
             handles.wfmean = (1/i)*(handles.wfmean*(i-1) + squeeze( handles.data.wf(handles.data.i(i),handles.data.j(i),1:end)));
         end
     end
-
+    
     if handles.data.state3d
         set(handles.velocity_component,'String','u|v|w|u''|v''|w''');
     else
@@ -107,7 +92,7 @@ if strcmp(inputname(1),'handles')
     % Default values
     handles.property  = handles.data.u(:,:,1:end-1); % we do not need the average
     handles.mean_property = handles.umean;
-
+    
     
     guidata(handles.fig, handles);
     update_time_axis(handles.fig,[],handles);
@@ -136,6 +121,9 @@ end
 % -------------------------------------------------------------------
 function varargout = update_time_axis(hObject, eventdata, handles)
 % Time series plot
+
+set(handles.fig,'Pointer','watch');
+set(handles.text_tip,'String','Plotting ...');
 axes(handles.time_axes)
 delete(get(handles.time_axes,'Children'));
 
@@ -154,6 +142,10 @@ set(handles.time_axes,'NextPlot','replace');
 grid on
 set(get(handles.time_axes,'xlabel'),'string','Time [s]');        
 set(get(handles.time_axes,'ylabel'),'string','Velocity [m/s]');
+
+set(handles.text_tip,'String','Ready ...');
+set(handles.fig,'Pointer','arrow');
+
 guidata(hObject, handles);
 
 
@@ -173,7 +165,9 @@ if get(handles.popupmenu_quantity,'Value') > 1
     switch get(handles.popupmenu_quantity,'Value')
         case {5}
             [cs,h] = contour(handles.spectrum_yaxis,handles.spectrum_xaxis,handles.quantity,'k-');
-            set(h(find(cell2mat(get(h(:),'userdata'))< 0)),'linestyle',':');
+            if ~isempty(h)
+                set(h(find(cell2mat(get(h(:),'userdata'))< 0)),'linestyle',':');
+            end
             % clabel(cs,h,'fontsize',10,'color','r','rotation',0,'labelspacing',200)
         case {6,7,8} 
             handles.spectrum_plot = loglog(handles.spectrum_xaxis,handles.quantity);
@@ -195,27 +189,35 @@ function varargout = velocity_component_Callback(hObject, eventdata, handles)
 % handles.property = repmat(0,[size(handles.data.i),size(handles.data.u,3)]);
 
 if handles.data.state3d
-      switch get(handles.velocity_component,'Value')
+    switch get(handles.velocity_component,'Value')
         case 1 % u
             handles.property  = handles.data.u(:,:,1:end-1); % we do not need the average
             handles.mean_property = handles.umean;
+            set(handles.pushbutton_calc,'Enable','On');
+            
         case 2 % v
             handles.property = handles.data.v(:,:,1:end-1);
             handles.mean_property = handles.vmean;
+            set(handles.pushbutton_calc,'Enable','On');
         case 3 % w
             handles.property = handles.data.w(:,:,1:end-1);
             handles.mean_property = handles.wmean;
+            set(handles.pushbutton_calc,'Enable','Off');
         case 4 % uf
             handles.property  = handles.data.uf;
             handles.mean_property = handles.ufmean;
+            set(handles.pushbutton_calc,'Enable','On');
         case 5 % vf
             handles.property  = handles.data.vf;
             handles.mean_property = handles.vfmean;
         case 6 % wf
             handles.property  = handles.data.wf;
             handles.mean_property = handles.wfmean;
+            set(handles.pushbutton_calc,'Enable','Off');
     end
 else
+    set(handles.pushbutton_calc,'Enable','On');
+    
     switch get(handles.velocity_component,'Value')
         case 1 % u
             handles.property  = handles.data.u(:,:,1:end-1); % we do not need the average
@@ -359,7 +361,7 @@ switch get(handles.popupmenu_quantity,'Value')
         end
         i = find(lags >= 0);
         handles.quantity = tmp(i)./tmp(i(1));   % normalize to 1.
-        handles.spectrum_xaxis = lags(i)*handles.data.dx;
+        handles.spectrum_xaxis = lags(i)*abs(handles.data.dx);
         handles.spectrum_xlabel = 'Lag [m]';
         handles.spectrum_ylabel = 'R_{ii}(x)';
         
@@ -377,25 +379,38 @@ switch get(handles.popupmenu_quantity,'Value')
         end
         i = find(lags >= 0);
         handles.quantity = tmp(i)./tmp(i(1));   % normalize to 1
-        handles.spectrum_xaxis = lags(i)*handles.data.dy;
+        handles.spectrum_xaxis = lags(i)*abs(handles.data.dy);
         handles.spectrum_xlabel = 'Lag [m]';
         handles.spectrum_ylabel = 'R_{ii}(y)';
         
     case 5 % cross-correlation
         ind = sub2ind(size(handles.property),handles.data.i,handles.data.j,ones(size(handles.data.i)));
-        tmp = reshape(handles.property(ind),handles.rows,handles.cols);
-        handles.quantity = corrcoef(tmp);     % 2-point covariance map;
-        for i = 2:handles.data.N
-            ind = sub2ind(size(handles.property),handles.data.i,handles.data.j,i*ones(size(handles.data.i)));
+        if length(handles.property(ind))~= handles.rows*handles.cols
+            set(handles.text_tip,'String','Wrong selection !!!');
+            pause(2)
+            handles.quantity = zeros(handles.rows,handles.cols);
+            handles.spectrum_xaxis = (0:size(handles.quantity,1)-1)*abs(handles.data.dx);
+            handles.spectrum_yaxis = (0:size(handles.quantity,2)-1)*abs(handles.data.dy);
+            handles.spectrum_xlabel = 'Lag [m]';
+            handles.spectrum_ylabel = 'Lag [m]';
+        else
             tmp = reshape(handles.property(ind),handles.rows,handles.cols);
-            handles.quantity = 1/i*(handles.quantity*(i-1) + corrcoef(tmp));     % averaging
+            handles.quantity = crosscorr2d(tmp);     % 2-point covariance map;
+%                         handles.quantity = corrcoef(tmp);     % 2-point covariance map;
+
+            for i = 2:handles.data.N
+                ind = sub2ind(size(handles.property),handles.data.i,handles.data.j,i*ones(size(handles.data.i)));
+                tmp = reshape(handles.property(ind),handles.rows,handles.cols);
+                handles.quantity = 1/i*(handles.quantity*(i-1) + crosscorr2d(tmp));     % averaging
+%                                 handles.quantity = 1/i*(handles.quantity*(i-1) + corrcoef(tmp));     % averaging
+
+            end
+            handles.quantity = handles.quantity./max(max(handles.quantity));
+            handles.spectrum_xaxis = (0:size(handles.quantity,1)-1)*abs(handles.data.dx);
+            handles.spectrum_yaxis = (0:size(handles.quantity,2)-1)*abs(handles.data.dy);
+            handles.spectrum_xlabel = 'Lag [m]';
+            handles.spectrum_ylabel = 'Lag [m]';
         end
-        handles.quantity = handles.quantity./max(max(handles.quantity));
-        handles.spectrum_xaxis = (0:size(handles.quantity,1)-1)*handles.data.dx;
-        handles.spectrum_yaxis = (0:size(handles.quantity,2)-1)*handles.data.dy;
-        handles.spectrum_xlabel = 'Lag [m]';
-        handles.spectrum_ylabel = 'Lag [m]';
-        
     case 6 % spectrum in t
         switch handles.method
             case 1 % fft(corr)
@@ -410,21 +425,21 @@ switch get(handles.popupmenu_quantity,'Value')
                 handles.quantity = (1/pi/handles.Fs)*real(fft(tmp,handles.nfft))./(w'*w);
                 handles.spectrum_xaxis = 2*pi*(0:ceil((handles.nfft+1)/2-1))*handles.Fs/handles.nfft;
                 handles.quantity = handles.quantity(1:ceil((handles.nfft+1)/2));
-                         handles.quantity = handles.quantity(2:end);
-         handles.spectrum_xaxis = handles.spectrum_xaxis(2:end);
+                handles.quantity = handles.quantity(2:end);
+                handles.spectrum_xaxis = handles.spectrum_xaxis(2:end);
             case 2 % psd
-                handles.quantity = 0;
-                for i = 1:length(handles.data.i)
-                    tmp = handles.property(handles.data.i(i),handles.data.j(i),:);
-                    winlen = str2double(get(handles.edit_winlen,'String'));
-                    if winlen <= 0 & winlen > length(tmp), winlen = length(tmp(:)); end 
-                    w = windowvector(winlen,get(handles.window,'Value'));
-                    [pxx,handles.spectrum_xaxis] = psd_est(tmp,handles.nfft,w,handles.noverlap,handles.Fs,handles.detrend);
-                    handles.quantity = 1/i*(handles.quantity*(i-1) + pxx);
-                end
+                %                 handles.quantity = 0;
+                %                 for i = 1:length(handles.data.i)
+                %                     tmp = handles.property(handles.data.i(i),handles.data.j(i),:);
+                %                     winlen = str2double(get(handles.edit_winlen,'String'));
+                %                     if winlen <= 0 & winlen > length(tmp), winlen = length(tmp(:)); end 
+                %                     w = windowvector(winlen,get(handles.window,'Value'));
+                %                     [pxx,handles.spectrum_xaxis] = psd_est(tmp,handles.nfft,w,handles.noverlap,handles.Fs,handles.detrend);
+                %                     handles.quantity = 1/i*(handles.quantity*(i-1) + pxx);
+                %                 end
         end
-         handles.quantity = handles.quantity(2:end);
-         handles.spectrum_xaxis = handles.spectrum_xaxis(2:end);
+        handles.quantity = handles.quantity(2:end);
+        handles.spectrum_xaxis = handles.spectrum_xaxis(2:end);
         handles.spectrum_xlabel = 'Frequency [rad/sec]';
         handles.spectrum_ylabel = 'E_{ii}(f)';
     case 7 % spectrum in k1
@@ -446,34 +461,34 @@ switch get(handles.popupmenu_quantity,'Value')
                 w = windowvector(length(tmp),get(handles.window,'Value'));
                 tmp = tmp(:).*w(:);
                 handles.quantity = (1/pi/handles.Fs)*real(fft(tmp,handles.nfft))./(w'*w);
-                handles.spectrum_xaxis = 2*pi*(0:ceil((handles.nfft+1)/2-1))/(handles.data.dx)/handles.nfft;
+                handles.spectrum_xaxis = 2*pi*(0:ceil((handles.nfft+1)/2-1))/(abs(handles.data.dx))/handles.nfft;
                 handles.quantity = handles.quantity(1:ceil((handles.nfft+1)/2));
-                         handles.quantity = handles.quantity(2:end);
-         handles.spectrum_xaxis = handles.spectrum_xaxis(2:end);
+                handles.quantity = handles.quantity(2:end);
+                handles.spectrum_xaxis = handles.spectrum_xaxis(2:end);
                 
             case 2 % psd
-                uniqueI = unique(handles.data.i);           % unique rows
-                indx = find(handles.data.i == uniqueI(1));
-                winlen = str2double(get(handles.edit_winlen,'String'));
-                    if winlen <= 0 & winlen > length(indx), winlen = length(indx); end 
-                    w = windowvector(winlen,get(handles.window,'Value'));
-%                w = windowvector(length(indx),get(handles.window,'Value'));
-                [handles.quantity,handles.spectrum_xaxis] = psd_est(handles.property(uniqueI(1),handles.data.j(indx),1),...
-                    handles.nfft,w,handles.noverlap,handles.Fs,handles.detrend);
-                k = 1;
-                for i = 2:length(uniqueI)                     % for each unique row
-                    indx = find(handles.data.i == uniqueI(i));
-                    for j = 1:handles.data.N
-                        k = k + 1;
-                        handles.quantity = 1/k*(handles.quantity*(k-1) + psd_est(handles.property(uniqueI(i),handles.data.j(indx),j),...
-                            handles.nfft,w,handles.noverlap,handles.Fs,handles.detrend));
-                    end
-                end
+                %                 uniqueI = unique(handles.data.i);           % unique rows
+                %                 indx = find(handles.data.i == uniqueI(1));
+                %                 winlen = str2double(get(handles.edit_winlen,'String'));
+                %                     if winlen <= 0 & winlen > length(indx), winlen = length(indx); end 
+                %                     w = windowvector(winlen,get(handles.window,'Value'));
+                % %                w = windowvector(length(indx),get(handles.window,'Value'));
+                %                 [handles.quantity,handles.spectrum_xaxis] = psd_est(handles.property(uniqueI(1),handles.data.j(indx),1),...
+                %                     handles.nfft,w,handles.noverlap,handles.Fs,handles.detrend);
+                %                 k = 1;
+                %                 for i = 2:length(uniqueI)                     % for each unique row
+                %                     indx = find(handles.data.i == uniqueI(i));
+                %                     for j = 1:handles.data.N
+                %                         k = k + 1;
+                %                         handles.quantity = 1/k*(handles.quantity*(k-1) + psd_est(handles.property(uniqueI(i),handles.data.j(indx),j),...
+                %                             handles.nfft,w,handles.noverlap,handles.Fs,handles.detrend));
+                %                     end
+                %                 end
         end
-                 handles.quantity = handles.quantity(2:end);
-         handles.spectrum_xaxis = handles.spectrum_xaxis(2:end);
-
-        handles.spectrum_xlabel = 'k_1 [rad/s]';
+        handles.quantity = handles.quantity(2:end);
+        handles.spectrum_xaxis = handles.spectrum_xaxis(2:end);
+        
+        handles.spectrum_xlabel = 'k_1 [rad/m]';
         handles.spectrum_ylabel = 'E_{ii}(k_1)';
         
     case 8 % spectrum in k2
@@ -496,37 +511,37 @@ switch get(handles.popupmenu_quantity,'Value')
                 w = windowvector(length(i),get(handles.window,'Value'));
                 tmp = tmp(:).*w(:);
                 handles.quantity = (1/pi/handles.Fs)*real(fft(tmp,handles.nfft))./(w'*w);
-                handles.spectrum_xaxis = 2*pi*(0:ceil((handles.nfft+1)/2-1))/(handles.data.dy)/handles.nfft;
+                handles.spectrum_xaxis = 2*pi*(0:ceil((handles.nfft+1)/2-1))/(abs(handles.data.dy))/handles.nfft;
                 handles.quantity = handles.quantity(1:ceil((handles.nfft+1)/2));
-                         handles.quantity = handles.quantity(2:end);
-         handles.spectrum_xaxis = handles.spectrum_xaxis(2:end);
+                handles.quantity = handles.quantity(2:end);
+                handles.spectrum_xaxis = handles.spectrum_xaxis(2:end);
                 
             case 2 % psd
                 
-                uniqueJ = unique(handles.data.j);           % unique rows
-                indx = find(handles.data.j == uniqueJ(1));
-%                 w = windowvector(length(indx),get(handles.window,'Value'));
-                winlen = str2double(get(handles.edit_winlen,'String'));
-                if winlen <= 0 & winlen > length(indx), winlen = length(indx); end 
-                w = windowvector(winlen,get(handles.window,'Value'));
-                [handles.quantity,handles.spectrum_xaxis] = psd_est(handles.property(handles.data.i(indx),uniqueJ(1),1),...
-                    handles.nfft,w,handles.noverlap,handles.Fs,handles.detrend);
-                k = 1;
-                for i = 2:length(uniqueJ)                     % for each unique row
-                    indx = find(handles.data.j == uniqueJ(1));
-                    for j = 1:handles.data.N
-                        k = k + 1;
-                        handles.quantity = 1/k*(handles.quantity*(k-1) + psd_est(handles.property(handles.data.i(indx),uniqueJ(i),j),...
-                            handles.nfft,w,handles.noverlap,handles.Fs,handles.detrend));
-                    end
-                end
+                %                 uniqueJ = unique(handles.data.j);           % unique rows
+                %                 indx = find(handles.data.j == uniqueJ(1));
+                % %                 w = windowvector(length(indx),get(handles.window,'Value'));
+                %                 winlen = str2double(get(handles.edit_winlen,'String'));
+                %                 if winlen <= 0 & winlen > length(indx), winlen = length(indx); end 
+                %                 w = windowvector(winlen,get(handles.window,'Value'));
+                %                 [handles.quantity,handles.spectrum_xaxis] = psd_est(handles.property(handles.data.i(indx),uniqueJ(1),1),...
+                %                     handles.nfft,w,handles.noverlap,handles.Fs,handles.detrend);
+                %                 k = 1;
+                %                 for i = 2:length(uniqueJ)                     % for each unique row
+                %                     indx = find(handles.data.j == uniqueJ(1));
+                %                     for j = 1:handles.data.N
+                %                         k = k + 1;
+                %                         handles.quantity = 1/k*(handles.quantity*(k-1) + psd_est(handles.property(handles.data.i(indx),uniqueJ(i),j),...
+                %                             handles.nfft,w,handles.noverlap,handles.Fs,handles.detrend));
+                %                     end
+                %                 end
         end
-         handles.quantity = handles.quantity(2:end);
-         handles.spectrum_xaxis = handles.spectrum_xaxis(2:end);
-
-        handles.spectrum_xlabel = 'k_2 [rad/s]';
+        handles.quantity = handles.quantity(2:end);
+        handles.spectrum_xaxis = handles.spectrum_xaxis(2:end);
+        
+        handles.spectrum_xlabel = 'k_2 [rad/m]';
         handles.spectrum_ylabel = 'E_{ii}(k_2)';
-
+        
 end
 guidata(hObject,handles);
 % update_gui(hObject,[],handles);
@@ -624,141 +639,6 @@ function popupmenu_quantity_Callback(hObject, eventdata, handles)
 % hObject    handle to popupmenu_quantity (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
-
-
-
-%--------------------------------------------------------------------------
-function [pxx,freq_vector] = psd_est(x,nfft,window,noverlap,Fs,detrendflag)
-% PSD_EST Power Spectral Density estimate, based on Mathworks' PSD.M
-% The method is modified periodogram, Welch method.
-% 
-%
-%   Pxx = PSD(X,NFFT,Fs,WINDOW) estimates the Power Spectral Density of 
-%   a discrete-time signal vector X using Welch's averaged, modified
-%   periodogram method.  
-%   
-%   X is divided into overlapping sections, each of which is detrended 
-%   (according to the detrending flag, if specified), then windowed by 
-%   the WINDOW parameter, then zero-padded to length NFFT.  The magnitude 
-%   squared of the length NFFT DFTs of the sections are averaged to form
-%   Pxx.  Pxx is length NFFT/2+1 for NFFT even, (NFFT+1)/2 for NFFT odd,
-%   or NFFT if the signal X is complex.  If you specify a scalar for 
-%   WINDOW, a Hanning window of that length is used.  Fs is the sampling
-%   frequency which doesn't affect the spectrum estimate but is used 
-%   for scaling the X-axis of the plots.
-%
-%   [Pxx,F] = PSD(X,NFFT,Fs,WINDOW,NOVERLAP) returns a vector of frequen-
-%   cies the same size as Pxx at which the PSD is estimated, and overlaps
-%   the sections of X by NOVERLAP samples.
-%
-%
-%   detrendflag = 0 -  'none', 1 - 'linear', 2 - 'mean'
-%   
-%   PSD with no output arguments plots the PSD in the current figure window,
-%   with confidence intervals if you provide the P parameter.
-%
-%   The default values for the parameters are NFFT = 256 (or LENGTH(X),
-%   whichever is smaller), NOVERLAP = 0, WINDOW = HANNING(NFFT), Fs = 2, 
-%   P = .95, and DFLAG = 'none'.  You can obtain a default parameter by 
-%   leaving it off or inserting an empty matrix [], e.g. PSD(X,[],10000).
-%
-%   NOTE: For Welch's method implementation which scales by the sampling
-%         frequency, 1/Fs, see PWELCH.
-%
-%   See also PWELCH, CSD, COHERE, TFE.
-%   ETFE, SPA, and ARX in the System Identification Toolbox.
-
-%   Author(s): T. Krauss, 3-26-93
-%   Copyright 1988-2002 The MathWorks, Inc.
-%   $Revision: 1.12 $  $Date: 2002/03/28 17:30:13 $
-
-%   NOTE 1: To express the result of PSD, Pxx, in units of
-%           Power per Hertz multiply Pxx by 1/Fs [1].
-%
-%   NOTE 2: The Power Spectral Density of a continuous-time signal,
-%           Pss (watts/Hz), is proportional to the Power Spectral 
-%           Density of the sampled discrete-time signal, Pxx, by Ts
-%           (sampling period). [2] 
-%       
-%               Pss(w/Ts) = Pxx(w)*Ts,    |w| < pi; where w = 2*pi*f*Ts
-
-%   References:
-%     [1] Petre Stoica and Randolph Moses, Introduction To Spectral
-%         Analysis, Prentice hall, 1997, pg, 15
-%     [2] A.V. Oppenheim and R.W. Schafer, Discrete-Time Signal
-%         Processing, Prentice-Hall, 1989, pg. 731
-%     [3] A.V. Oppenheim and R.W. Schafer, Digital Signal
-%         Processing, Prentice-Hall, 1975, pg. 556
-
-% Default values
-if nargin < 2 | isempty(nfft)
-    nfft = min(length(x),256);
-end
-if nargin < 3 | isempty(window)
-    window = hanning(nfft);
-end 
-if nargin < 4 | isempty(noverlap)
-    noverlap = 0;
-end
-if nargin < 5 | isempty(Fs)
-    Fs = 2;
-end
-if nargin < 6 | isempty(detrendflag)
-    detrendflag = 0;
-end
-
-% compute PSD
-x = x(:);
-window = window(:);
-n = length(x);		    
-nwind = length(window); 
-% zero-pad x if it has length less than the window length
-if n < nwind            
-    x(nwind)=0;  n=nwind;
-end
-x = x(:);		
-
-% Number of overlaps
-k = fix((n-noverlap)/(nwind-noverlap));	
-
-index = 1:nwind;
-
-% Normalizing scale factor ==> asymptotically unbiased
-scale = k*norm(window)^2;
-% scale = k*sum(window)^2;
-
-pxx = zeros(nfft,1);
-switch detrendflag
-    case 0 % no detrend
-        for i=1:k
-            xw = window.*(x(index));
-            index = index + (nwind - noverlap);
-            pxx = pxx + abs(fft(xw,nfft)).^2;
-        end
-    case 1 % detrend
-        for i=1:k
-            xw = window.*detrend(x(index));
-            index = index + (nwind - noverlap);
-            pxx = pxx + abs(fft(xw,nfft)).^2;
-        end
-    case 2 % remove mean
-        for i=1:k
-            xw = window.*detrend(x(index),'constant');
-            index = index + (nwind - noverlap);
-            pxx = pxx + abs(fft(xw,nfft)).^2;
-        end
-end
-
-
-if rem(nfft,2),    % nfft odd
-    indx = (1:(nfft+1)/2)';
-else
-    indx = (1:nfft/2+1)';
-end
-pxx = pxx(indx)/Fs/pi;
-freq_vector = (indx-1)*Fs/nfft*2*pi;
-% [EOF] psd_est
 
 
 % --- Executes during object creation, after setting all properties.
@@ -967,20 +847,6 @@ c = ifft(at.*bt);
 c(na+nb:nf) = [];
 lags = [-(na-1):na-1];
 
-% % %--------------------------------------------------------------------------
-% % function [c,lags] = crosscorr(a,b)
-% % % Calculates Cross-Correlation with
-% % % the Mathwork's built-in filter() function
-% % % Based on CONV
-% % %
-% % if nargin == 1
-% %     b = a;
-% % end
-% % na = length(a);
-% % a(2*na-1) = 0;
-% % c = filter(b(end:-1:1), 1, a);
-% % lags = [-(na-1):na-1];
-
 
 % --------------------------------------------------------------------
 function export2csv_Callback(hObject, eventdata, handles)
@@ -1031,5 +897,12 @@ set(get(handles.export_figure,'children'),'Position',[0.13 0.11 0.775 0.815]);
 set(get(handles.export_figure,'children'),'Box','on');
 
 guidata(handles.fig, handles);
+
+% --------------------------------------------------------------------
+function c = crosscorr2d(x,y)
+if nargin == 1
+	y = x;
+end
+c = conv2(x, y(end:-1:1,end:-1:1));
 
 

@@ -1,8 +1,3 @@
-% Author: Alex Liberzon (alex dot liberzon at gmail dot com)
-% Copyright (c) 1998-2012 OpenPIV group
-% See the file license.txt for copying permission.
-
-
 [gui_files,gui_path] = cil_uigetfiles;
 
 handles.N = length(gui_files);

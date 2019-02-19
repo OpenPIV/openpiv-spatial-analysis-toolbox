@@ -3,7 +3,7 @@ function varargout = distrib(varargin)
 %    FIG = DISTRIB launch distrib GUI.
 %    DISTRIB('callback_name', ...) invoke the named callback.
 
-% Last Modified by GUIDE v2.5 18-May-2004 01:34:25
+% Last Modified by GUIDE v2.5 20-May-2004 19:50:41
 % 03.05.04, Alex: movegui(fig,'center')
 % handles = rmfield(handles,'property');
 % save to CSV now works both for rows and for columns
@@ -81,9 +81,9 @@ if nargin == 1  % LAUNCH GUI
     handles.hold = 0;
     guidata(fig, handles);
     plotHandle = plot(handles.data.x(1,handles.leftX:handles.rightX),handles.property);
-    ylabel('x [m]'); 
+    ylabel(['x',handles.data.xUnits]); % [m]'); 
     grid on;
-    xlabel(strcat(handles.data.previous_quantity,' ',handles.data.units));
+    xlabel(strcat(handles.data.previous_quantity,'  ',handles.data.units));
 %     plotedit on;
     if nargout > 0
         varargout{1}  =  fig;
@@ -112,19 +112,19 @@ val  =  get(handles.UpdateGraph,'Value');
 switch val 
     case 1
         x = handles.data.x(1,handles.leftX:handles.rightX);
-        x_label = 'x [m]'; 
+        x_label = (['x ',handles.data.xUnits]); % 'x [m]'; 
         y = handles.property';
         % y = y(~isnan(y(:,1)),:);
-        y_label = strcat(handles.data.previous_quantity,' ',handles.data.units);
+        y_label = strcat(handles.data.previous_quantity,'  ',handles.data.units);
         xa = x;
-        ya = nanmean(handles.property);
+        ya = no_nan_mean(handles.property);
     case 2
         y = handles.data.y(handles.topY:handles.bottomY,1);
-        y_label = 'y [m]'; 
+        y_label = (['y ',handles.data.xUnits]); % 'y [m]'; 
         x = handles.property;
         % x = x(:,~isnan(x(1,:)));
-        x_label = strcat(handles.data.previous_quantity,' ',handles.data.units);
-        xa = nanmean(handles.property')';
+        x_label = strcat(handles.data.previous_quantity,'  ',handles.data.units);
+        xa = no_nan_mean(handles.property')';
         ya = y;
 end
 
@@ -186,21 +186,6 @@ delete(handles.fig);
 function AvgCheckbox_Callback(hObject, eventdata, handles)
 UpdateGraph_Callback(gcbo,[],guidata(gcbo));
 
-% --------------------------------------------------------------------
-% % -------------- if we need to swap------
-% function [x_value, x_label, y_value,y_label] = SwXY(handles)
-% 
-% if handles.swap == 0
-%     x_value = handles.second_coord;  
-%     x_label = handles.sec_coord_label;
-%     y_value = handles.av_property; 
-%     y_label = strcat(handles.data.previous_quantity,' ',handles.data.units); 
-% else
-%     y_value = handles.second_coord;  
-%     y_label = handles.sec_coord_label;
-%     x_value = handles.av_property; 
-%     x_label = strcat(handles.data.previous_quantity,' ',handles.data.units);
-% end 
 
 
 % --- Executes on button press in SnglCheckbox.
@@ -273,18 +258,73 @@ copyobj(handles.axes1,handles.export_figure);
 % copyobj(get(handles.axes_main,'Children'),handles.export_axes);
 
 set(handles.export_figure,'Units','normalized');
-set(get(handles.export_figure,'children'),'Units','normalized');
-set(get(handles.export_figure,'children'),'Position',[0.13 0.11 0.775 0.815]);
-set(get(handles.export_figure,'children'),'Box','on');
-hl =  get(get(handles.export_figure,'children'),'children');
+handles.export_axes = get(handles.export_figure,'CurrentAxes');
+set(handles.export_axes,'Units','normalized');
+set(handles.export_axes,'Position',[0.13 0.11 0.775 0.815]);
+set(handles.export_axes,'Box','on');
+hl =  findobj(handles.export_axes,'type','line');
 xd = get(hl,'xdata');
 yd = get(hl,'ydata');
-for i = 1:length(xd), 
-    if any(isnan(xd{i})) | any(isnan(yd{i})), 
-        delete(hl(i));
+if iscell(xd)
+    for i = 1:length(xd), 
+        if all(isnan(xd{i})) | all(isnan(yd{i})), 
+            delete(hl(i));
+        end
     end
 end
 
 
 guidata(handles.fig, handles);
+
+
+% --------------------------------------------------------------------
+function export2CSV_Callback(hObject, eventdata, handles)
+% hObject    handle to export2CSV (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+hl  =  findobj(gca,'type','line');
+if ~isempty(hl)
+    xd  =  get(hl,'xdata');
+    yd  =  get(hl,'ydata');
+    if ~iscell(xd) 
+        matr(:,1)  =  xd(:);
+        matr(:,2)  =  yd(:);
+    elseif isequal(xd{1},xd{2})
+        matr(:,1)  =  [xd{1}]';
+        for i  =  1:length(hl), 
+            matr(:,i+1)  =  [yd{i}]';
+        end
+    elseif isequal(yd{1},yd{2})
+        matr(:,1)  =  [yd{1}]';
+        for i  =  1:length(hl), 
+            matr(:,i+1)  =  [xd{i}]';
+        end
+    else
+        for i  =  1:2:length(hl), 
+            matr(:,i)  =  [xd{i}]';
+            matr(:,i+1)  =  [yd{i}]';
+        end
+    end
+    
+    file  =  [];
+    file  =  inputdlg('File Name','Input Name for CSV File');   
+    if ~isempty (file)
+        csvwrite(file{1},matr);  
+    else 
+        errordlg ('Choose a valid file name !!! ');
+    end;
+end; 
+
+
+
+function b = no_nan_mean(a)
+anan = isnan(a);
+indx = find(anan);
+a(indx) = zeros(size(indx));
+notnans = sum(~anan);
+indx = find(notnans == 0);
+notnans(indx) = 1;
+b = sum(a)./notnans;
+b(indx) = nan;
 
