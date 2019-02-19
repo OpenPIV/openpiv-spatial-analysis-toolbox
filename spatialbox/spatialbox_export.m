@@ -1,10 +1,10 @@
-% SPATIALBOX - main GUI file, created by GUIDE
+% SPATIALBOX_EXPORT - main GUI file, created by GUIDE
 %
 
 % Copyright (c) 1998-2017 OpenPIV group
 % See the file license.txt for copying permission.
 
-function varargout = spatialbox(varargin)
+function varargout = spatialbox_export(varargin)
 warning off %#ok<WNOFF>
 
 global orighandles current_path;
