@@ -30,5 +30,11 @@ Ideas and implementation:
 
 Roi Gurka,
 Alex Liberzon
-Denis Lepchev 
+Denis Lepchev
+Hadar Ben Gida
+
+How to cite
++++++++++++
+
+Liberzon, Alex; Gurka, Roi; Lepchev, Denis; Ben-Gida, Hadar (2020): OpenPIV Spatial and Temporal Analysis Toolbox. figshare. Software. https://doi.org/10.6084/m9.figshare.12330608
 
